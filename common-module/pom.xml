@@ -78,6 +78,14 @@
             <artifactId>swagger-annotations</artifactId>
             <version>2.2.19</version>
         </dependency>
+
+        <!-- OpenFeign -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+            <version>3.1.5</version>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
 </project>

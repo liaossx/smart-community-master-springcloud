@@ -13,6 +13,12 @@
         <module>common-module</module>
         <module>core-service</module>
         <module>gateway-service</module>
+        <module>user-service</module>
+        <module>house-service</module>
+        <module>parking-service</module>
+        <module>property-service</module>
+        <module>community-service</module>
+        <module>system-service</module>
     </modules>
     <name>smart-comty-master</name>
     <description>智慧社区父工程 - 适配Maven 3.8.8</description>

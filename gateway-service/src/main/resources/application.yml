@@ -17,9 +17,39 @@ spring:
           enabled: true  # 开启服务名路由（如/user-service/**转发到user-service）
       routes:
         # 用户服务路由
-        - id: core-service
-          uri: lb://core-service  # 负载均衡指向Nacos中的服务
+        - id: user-service
+          uri: lb://user-service
           predicates:
-            - Path=/api/**
+            - Path=/api/user/**
+            
+        # 房屋服务路由
+        - id: house-service
+          uri: lb://house-service
+          predicates:
+            - Path=/api/house/**
+
+        # 停车服务路由
+        - id: parking-service
+          uri: lb://parking-service
+          predicates:
+            - Path=/api/parking/**
+
+        # 社区互动服务 (活动/话题/团购)
+        - id: community-service
+          uri: lb://community-service
+          predicates:
+            - Path=/api/activity/**,/api/topic/**,/api/group/**
+
+        # 物业服务路由 (费用/报修/投诉/公告/访客/快递)
+        - id: property-service
+          uri: lb://property-service
+          predicates:
+            - Path=/api/fee/**,/api/repair/**,/api/complaint/**,/api/notice/**,/api/visitor/**,/api/express/**
+
+        # 系统管理服务 (日志/统计)
+        - id: system-service
+          uri: lb://system-service
+          predicates:
+            - Path=/api/monitor/**,/api/admin/stats/**
 server:
   port: 80  # 网关端口

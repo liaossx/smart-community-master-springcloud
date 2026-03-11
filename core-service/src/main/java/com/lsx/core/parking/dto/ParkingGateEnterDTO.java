@@ -1,9 +1,0 @@
-package com.lsx.core.parking.dto;
-
-import lombok.Data;
-
-@Data
-public class ParkingGateEnterDTO {
-    private String plateNo;
-
-}
