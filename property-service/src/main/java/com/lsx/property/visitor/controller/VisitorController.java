@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/visitor")
-@Tag(name = "鐠佸灝顓圭粻锛勬倞閹恒儱褰?)
+@Tag(name = "访客管理接口")
 public class VisitorController {
 
     private static final Logger log = LoggerFactory.getLogger(VisitorController.class);
@@ -26,14 +26,14 @@ public class VisitorController {
     private VisitorService visitorService;
 
     @PostMapping("/apply")
-    @Operation(summary = "閹绘劒姘︽０鍕")
+    @Operation(summary = "访客申请")
     public Result<Long> apply(@RequestBody SysVisitor body) {
         Long id = visitorService.apply(body);
         return Result.success(id);
     }
 
     @GetMapping("/my")
-    @Operation(summary = "閹存垹娈戠拋鍨吂妫板嫮瀹?)
+    @Operation(summary = "我的访客列表")
     public Result<IPage<SysVisitor>> my(@RequestParam("userId") Long userId,
                                         @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
                                         @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
@@ -43,30 +43,29 @@ public class VisitorController {
 
 
     @GetMapping("/list")
-    @Operation(summary = "缁狅紕鎮婇崨妯侯吀閺嶇鍨悰?)
+    @Operation(summary = "管理员查询列表")
     public Result<IPage<VisitorDTO>> adminList(@RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
                                                @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize,
                                                @RequestParam(value = "status", required = false) String status,
                                                @RequestParam(value = "keyword", required = false) String keyword) {
         try {
-            log.info("閺€璺哄煂鐠佸灝顓归崚妤勩€冪拠销毁嬬湴: pageNum={}, pageSize={}, status={}, keyword={}", pageNum, pageSize, status, keyword);
+            log.info("管理员查询访客列表: pageNum={}, pageSize={}, status={}, keyword={}", pageNum, pageSize, status, keyword);
             IPage<VisitorDTO> page = visitorService.adminList(pageNum, pageSize, status, keyword);
-            log.info("鐠佸灝顓归崚妤勩€冮弻銉嚄閹存劕濮? total={}", page.getTotal());
+            log.info("查询成功: total={}", page.getTotal());
             return Result.success(page);
         } catch (Exception e) {
-            log.error("鐠佸灝顓归崚妤勩€冮弻銉嚄閸欐垹鏁撳鍌氱埗!", e);
+            log.error("管理员查询列表失败!", e);
             throw e;
         }
     }
 
     @PutMapping("/audit")
-    @Operation(summary = "缁狅紕鎮婇崨妯侯吀閺?)
-    @Log(title = "鐠佸灝顓圭粻锛勬倞", businessType = BusinessType.UPDATE)
+    @Operation(summary = "审核访客")
+    @Log(title = "访客管理", businessType = BusinessType.UPDATE)
     public Result<Boolean> audit(@RequestParam("id") Long id,
                                  @RequestParam("status") String status,
                                  @RequestParam(value = "remark", required = false) String remark) {
         boolean ok = visitorService.audit(id, status, remark);
-        return ok ? Result.success(true) : Result.fail("鐎光剝鐗虫径杈Е");
+        return ok ? Result.success(true) : Result.fail("操作失败");
     }
 }
-

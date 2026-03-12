@@ -49,7 +49,7 @@ public class VisitorServiceImpl extends ServiceImpl<SysVisitorMapper, SysVisitor
         String role = UserContext.getRole();
         Long cid = UserContext.getCommunityId();
         
-        log.info("瀵偓婵澧界悰?Mapper 閺屻儴顕? communityId={}, role={}, keyword={}, status={}", cid, role, keyword, status);
+        log.info("查询访客列表: communityId={}, role={}, keyword={}, status={}", cid, role, keyword, status);
         
         Long filterCid = null;
         if (!"super_admin".equalsIgnoreCase(role)) {
@@ -59,22 +59,22 @@ public class VisitorServiceImpl extends ServiceImpl<SysVisitorMapper, SysVisitor
         
         try {
             IPage<VisitorDTO> result = baseMapper.selectAdminList(page, status, keyword, filterCid);
-            // 閹靛濮╂繅顐㈠帠 ownerName (閻劍鍩涢惇鐔风杽婵挸鎮?
+            // 填充 ownerName (业主姓名)
             result.getRecords().forEach(dto -> {
                 if (dto.getUserId() != null) {
                     try {
                         String realName = userServiceClient.getRealNameById(dto.getUserId());
                         dto.setOwnerName(realName);
                     } catch (Exception e) {
-                        log.warn("閼惧嘲褰囬悽銊﹀煕婵挸鎮曟径杈Е: userId={}", dto.getUserId());
-                        dto.setOwnerName("閺堫亞鐓￠悽銊﹀煕");
+                        log.warn("获取业主姓名失败: userId={}", dto.getUserId());
+                        dto.setOwnerName("未知业主");
                     }
                 }
             });
-            log.info("Mapper 閺屻儴顕楁潻鏂挎礀: size={}", result.getRecords().size());
+            log.info("查询结果数量: size={}", result.getRecords().size());
             return result;
         } catch (Exception e) {
-            log.error("Mapper 閹笛嗩攽婢惰精瑙?", e);
+            log.error("查询失败", e);
             throw e;
         }
     }
@@ -87,7 +87,7 @@ public class VisitorServiceImpl extends ServiceImpl<SysVisitorMapper, SysVisitor
         Long cid = UserContext.getCommunityId();
         if (!"super_admin".equalsIgnoreCase(role)) {
             if (cid == null || v.getCommunityId() == null || !cid.equals(v.getCommunityId())) {
-                throw new RuntimeException("閺冪姵娼堢€光剝鐗抽崗未读电铂缁€鎯у隘鐠佸灝顓?);
+                throw new RuntimeException("无权审核其他社区的访客");
             }
         }
         v.setStatus(status);
@@ -96,4 +96,3 @@ public class VisitorServiceImpl extends ServiceImpl<SysVisitorMapper, SysVisitor
         return this.updateById(v);
     }
 }
-

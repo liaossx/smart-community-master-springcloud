@@ -6,27 +6,27 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@Schema(description = "閸楀啿鐨㈡潻鍥ㄦ埂閸忣剙鎲TO")
+@Schema(description = "即将过期通知DTO")
 public class ExpiringNoticeDTO {
 
-    @Schema(description = "閸忣剙鎲D")
+    @Schema(description = "通知ID")
     private Long id;
 
-    @Schema(description = "閸忣剙鎲￠弽鍥暯")
+    @Schema(description = "通知标题")
     private String title;
 
-    @Schema(description = "閻╊喗鐖ｇ猾璇茬€?)
+    @Schema(description = "目标类型")
     private String targetType;
 
-    @Schema(description = "閸欐垵绔烽弮鍫曟？")
+    @Schema(description = "发布时间")
     private LocalDateTime publishTime;
 
-    @Schema(description = "鏉╁洦婀￠弮鍫曟？")
+    @Schema(description = "过期时间")
     private LocalDateTime expireTime;
 
-    @Schema(description = "閸撯晙缍戞径鈺傛殶")
+    @Schema(description = "剩余天数")
     private Long daysLeft;
 
-    @Schema(description = "閺勵垰鎯佺純顕€銆?)
+    @Schema(description = "置顶状态")
     private Boolean topFlag;
 }

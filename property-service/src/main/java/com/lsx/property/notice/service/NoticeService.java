@@ -2,41 +2,27 @@ package com.lsx.property.notice.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lsx.property.notice.dto.NoticeCreateDTO;
-import com.lsx.property.notice.dto.NoticeReadStatDTO;
-import com.lsx.property.notice.dto.NoticeVO;
+import com.lsx.property.notice.dto.*;
 import com.lsx.property.notice.entity.SysNotice;
 import java.util.List;
 
 public interface NoticeService extends IService<SysNotice> {
-    Long createNotice(NoticeCreateDTO dto, Long adminId);
+    Long createNotice(NoticeCreateDTO dto, Long userId);
 
-    Page<NoticeVO> listNotices(Long userId, Integer pageNum, Integer pageSize);
+    Page<SysNotice> listNotices(String title, String status, Integer pageNum, Integer pageSize);
     
-    /**
-     * 缂佺喕顓搁悽銊﹀煕閺堫亣顕伴崗顒€鎲￠弫浼村櫤
-     */
-    long countUnread(Long userId);
+    Page<NoticeDTO> getUserNotices(Long userId, Integer pageNum, Integer pageSize);
 
-    void markAsRead(Long noticeId, Long userId);
+    Boolean readNotice(Long noticeId, Long userId);
 
-    void deleteNotice(Long noticeId, Long adminId);
+    Boolean deleteNotice(Long noticeId);
 
-    SysNotice getById(Long id);
+    SysNotice getNoticeById(Long id);
 
-    void updateNotice(Long id, NoticeCreateDTO dto, Long adminId);
-
-    void publishNotice(Long id, Long adminId);
-
-    void publishNotice(Long id, Long adminId, Long communityId);
-
-    void offlineNotice(Long id, Long adminId);
-
-    void batchDelete(List<Long> noticeIds, Long adminId);
-
-    void batchOffline(List<Long> noticeIds, Long adminId);
-
-    NoticeReadStatDTO getReadStat(Long noticeId);
+    Boolean updateNotice(Long id, NoticeCreateDTO dto);
+    
+    // 过期处理相关
+    List<ExpiringNoticeDTO> getExpiringNotices(Integer days);
+    
+    Boolean batchExpireNotices(BatchNoticeExpireDTO dto);
 }
-
-

@@ -37,23 +37,24 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
     public boolean submitRepair(RepairDto repairdto) {
         String buildingNo = repairdto.getBuildingNo();
         String houseNo = repairdto.getHouseNo();
-        // 1. 闂堢偟鈹栭弽锟犵崣
+        // 1. 校验参数
         if (buildingNo == null || buildingNo.trim().isEmpty()) {
-            throw new RuntimeException("濡ゅ吋鐖ч崣铚傜瑝閼虫垝璐熺粚?);
+            throw new RuntimeException("楼栋号不能为空");
         }
         if (houseNo == null || houseNo.trim().isEmpty()) {
-            throw new RuntimeException("閹村灝鐪块崣铚傜瑝閼虫垝璐熺粚?);
+            throw new RuntimeException("房屋号不能为空");
         }
 
-        // 閹村灝鐪块崣销毁嬵劀閸?        String housePattern = "^\\d{3,4}$"; 
+        // 房屋号格式校验
+        String housePattern = "^\\d{3,4}$"; 
         if (!ReUtil.isMatch(housePattern, houseNo.trim())) {
-            throw new RuntimeException("閹村灝鐪块崣销毁嬬壐瀵繘鏁婄拠顖ょ礉鎼存柧璐?-4娴ｅ秵鏆熺€涙绱欐俊?101'销毁?);
+            throw new RuntimeException("房屋号格式不正确，应为3-4位数字，如'101'");
         }
 
-        // 閺嶈宓佸Δ充值肩埀閸欏嘲鎷伴幋鍨溈缂傛牕褰块弻銉嚄閹村灝鐪縄D
+        // 校验房屋是否存在
         HouseDTO house = houseServiceClient.getHouseByInfo(buildingNo, houseNo);
         if (house == null) {
-            throw new RuntimeException("閹村灝鐪挎稉宥呯摠閸︻煉绱濈拠销毁嬵梾閺屻儲銈奸弽瀣娇閸滃本鍩х仦瀣娇");
+            throw new RuntimeException("房屋信息不存在或未绑定所属社区");
         }
         Long houseId = house.getId();
         
@@ -69,29 +70,33 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
 
     @Override
     public boolean updateRepairStatus(Long repairId, String status, String remark) {
-        // 1. 閺屻儲濮ゆ穱顔煎礋閺勵垰鎯佺€涙ê婀?        Repair repair = baseMapper.selectById(repairId);
+        // 1. 查询报修记录
+        Repair repair = baseMapper.selectById(repairId);
         if (repair == null) {
             return false;
         }
-        // 2. 閺囧瓨鏌婇悩鑸碘偓浣告嫲婢跺洦鏁?        repair.setStatus(status);
+        // 2. 更新状态
+        repair.setStatus(status);
         repair.setHandleRemark(remark);
         return baseMapper.updateById(repair) > 0;
     }
 
-    //閻劍鍩涢弻銉嚄閼奉亜绻侀惃鍕Г娣囶喛顓归崡?    @Override
+    // 查询我的报修记录
+    @Override
     public IPage<RepairResult> getMyRepairs(Long userId, Integer pageNum, Integer pageSize) {
-        Assert.notNull(userId, "閻劍鍩汭D娑撳秷充值樻稉铏光敄");
+        Assert.notNull(userId, "用户ID不能为空");
         Page<Repair> page = new Page<>(pageNum, pageSize);
 
-        // 閸掑棝銆夐弻銉嚄瑜版挸澧犻悽銊﹀煕閻ㄥ嫭濮ゆ穱顔款唶瑜?        IPage<Repair> repairPage = baseMapper.selectPage(page, Wrappers.<Repair>lambdaQuery()
+        // 分页查询
+        IPage<Repair> repairPage = baseMapper.selectPage(page, Wrappers.<Repair>lambdaQuery()
                 .eq(Repair::getUserId, userId)
                 .orderByDesc(Repair::getCreateTime));
 
-        // 鏉烆剚宕叉稉鍝勫缁旑垰鐫嶇粈铏规畱VO
+        // 转换为VO
         return repairPage.convert(this::convertToRepairResult);
     }
 
-    //缁狅紕鎮婇崨妯荤叀鐠囥垹鍙忛柈銊ф畱閹躲儰鎱ㄧ拋銏犲礋
+    // 查询所有报修记录
     @Override
     public IPage<RepairResult> getAllRepairs(Integer pageNum, Integer pageSize, String status, String keyword) {
         Page<Repair> page = new Page<>(pageNum, pageSize);
@@ -99,37 +104,42 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
         LambdaQueryWrapper<Repair> queryWrapper = new LambdaQueryWrapper<Repair>()
                 .orderByDesc(Repair::getCreateTime);
 
-        // --- 閺夊啴妾烘潻鍥ㄦ姢闁槒绶?---
+        // --- 权限控制 ---
         String role = UserContext.getRole();
         Long currentCommunityId = UserContext.getCommunityId();
         
         if ("super_admin".equalsIgnoreCase(role)) {
-             // 鐡掑懐楠囩粻锛勬倞閸涙﹫绱版稉宥呬粵闂勬劕鍩?        } else {
+             // 超级管理员，查询所有
+        } else {
              if (currentCommunityId == null) {
-                  // 閺咁噣鈧氨顓搁悶鍡楁喅/娑撴矮瀵屾俊鍌涚亯濞屸剝婀佺粈鎯у隘ID销毁涘本鐓℃稉宥呭煂閺佺増宓?                  queryWrapper.eq(Repair::getId, -1L);
+                  // 普通管理员未绑定社区，查询为空
+                  queryWrapper.eq(Repair::getId, -1L);
              } else {
                   queryWrapper.eq(Repair::getCommunityId, currentCommunityId);
              }
         }
         // -----------------
 
-        // 閻樿埖鈧胶鐡柅?        if (StringUtils.hasText(status)) {
+        // 状态筛选
+        if (StringUtils.hasText(status)) {
             queryWrapper.eq(Repair::getStatus, status);
         }
 
-        // 閸忔娊鏁拠宥嗘偝缁?        if (StringUtils.hasText(keyword)) {
-            // 婢跺嫮鎮婇崗鎶芥暛鐠囧稄绱濋弨顖涘瘮"1閺?01"閺嶇厧绱?            List<String> searchTerms = processSearchKeyword(keyword);
+        // 关键字搜索
+        if (StringUtils.hasText(keyword)) {
+            // 处理搜索关键字
+            List<String> searchTerms = processSearchKeyword(keyword);
             final List<Long> houseIds = getAllMatchingHouseIds(searchTerms);
 
             queryWrapper.and(wrapper -> {
-                // 娑撶儤鐦℃稉顏呮偝缁便垽銆嶅ǎ璇插閺夆€叉
+                // 故障描述或类型
                 for (String term : searchTerms) {
                     wrapper.like(Repair::getFaultType, term)
                             .or()
                             .like(Repair::getFaultDesc, term);
                 }
 
-                // 濞ｈ濮為幋鍨溈ID閺夆€叉
+                // 房屋ID匹配
                 if (!houseIds.isEmpty()) {
                     wrapper.or().in(Repair::getHouseId, houseIds);
                 }
@@ -140,19 +150,21 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
         return repairPage.convert(this::convertToRepairResult);
     }
 
-    // 婢跺嫮鎮婇幖婊呭偍閸忔娊鏁拠?    private List<String> processSearchKeyword(String keyword) {
+    // 处理搜索关键字
+    private List<String> processSearchKeyword(String keyword) {
         List<String> searchTerms = new ArrayList<>();
-        searchTerms.add(keyword); // 閸樼喎顫愰崗鎶芥暛鐠?
-        // 婢跺嫮鎮?1閺?01"閺嶇厧绱?        if (keyword.contains("閺?)) {
-            // 閹绘劕褰囧Δ充值肩埀闁劌鍨?            String[] parts = keyword.split("閺?);
+        searchTerms.add(keyword); // 原始关键字
+
+        if (keyword.contains("栋")) {
+            String[] parts = keyword.split("栋");
             if (parts.length > 0) {
-                String buildingPart = parts[0] + "閺?;
+                String buildingPart = parts[0] + "栋";
                 searchTerms.add(buildingPart);
             }
 
-            // 閹绘劕褰囬幋鍨娇闁劌鍨?            if (parts.length > 1 && !parts[1].isEmpty()) {
+            if (parts.length > 1 && !parts[1].isEmpty()) {
                 String housePart = parts[1];
-                // 缁夊娅?鐎?鐎涙绱欐俊鍌涚亯閺堝绱?                housePart = housePart.replace("鐎?, "");
+                housePart = housePart.replace("室", "");
                 if (!housePart.isEmpty()) {
                     searchTerms.add(housePart);
                 }
@@ -162,7 +174,7 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
         return searchTerms.stream().distinct().collect(Collectors.toList());
     }
 
-    // 閼惧嘲褰囬幍鈧張澶婂爱闁板秶娈戦幋鍨溈ID
+    // 获取匹配的房屋ID
     private List<Long> getAllMatchingHouseIds(List<String> searchTerms) {
         Set<Long> houseIds = new HashSet<>();
 
@@ -174,17 +186,18 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
     }
 
     
-    // 閺嶈宓侀崡鏇氶嚋閸忔娊鏁拠宥嗙叀鐠囥垺鍩х仦濠璂
+    // 调用远程接口搜索房屋ID
     private List<Long> getHouseIdsByKeyword(String keyword) {
         return houseServiceClient.searchHouseIds(keyword);
     }
 
 
     /**
-     * 缁狅紕鎮婇崨妯荤叀鐠囥垹宕熸稉顏冪瑹娑撹崵娈戦幎銉ゆ叏鐠佹澘缍嶉敍鍫濆瀻妞ょ绱?     */
+     * 查询用户报修记录
+     */
     @Override
     public IPage<RepairResult> getUserRepairs(Long userId, Integer pageNum, Integer pageSize) {
-        Assert.notNull(userId, "閻劍鍩汭D娑撳秷充值樻稉铏光敄");
+        Assert.notNull(userId, "用户ID不能为空");
         Page<Repair> page = new Page<>(pageNum, pageSize);
 
         IPage<Repair> repairPage = baseMapper.selectPage(page, Wrappers.<Repair>lambdaQuery()
@@ -196,13 +209,14 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
 
 
     /**
-     * 閸忣剙鍙℃潪顒佸床閺傝纭堕敍姝奺pair 閳?RepairResult销毁涘牆鍙ч懕鏃€鍩х仦瀣╀繆閹垽绱?     */
+     * 转换为VO
+     */
     private RepairResult convertToRepairResult(Repair repair) {
         if (repair == null) return null;
 
         RepairResult result = new RepairResult();
 
-        // 1. 婢跺秴鍩楅崺鐑樻拱閹躲儰鎱ㄦ穱鈩冧紖
+        // 1. 基础信息
         result.setId(repair.getId());
         result.setFaultType(repair.getFaultType());
         result.setFaultDesc(repair.getFaultDesc());
@@ -211,14 +225,16 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
         result.setCreateTime(repair.getCreateTime());
         result.setUpdateTime(repair.getUpdateTime());
 
-        // 2. 婢跺嫮鎮婇崶鍓у閸掓銆?        if (StringUtils.hasText(repair.getFaultImgs())) {
+        // 2. 图片处理
+        if (StringUtils.hasText(repair.getFaultImgs())) {
             List<String> imgs = Arrays.asList(repair.getFaultImgs().split(","));
             result.setFaultImgs(imgs);
         } else {
             result.setFaultImgs(new ArrayList<>());
         }
 
-        // 3. 閺屻儴顕楅獮鎯邦啎缂冾喗鍩х仦瀣╀繆閹?        if (repair.getHouseId() != null) {
+        // 3. 房屋信息
+        if (repair.getHouseId() != null) {
             HouseDTO house = houseServiceClient.getHouseById(repair.getHouseId());
             if (house != null) {
                 result.setCommunityName(house.getCommunityName());
@@ -227,44 +243,46 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
             }
         }
 
-        // 4. 鐠佸墽鐤嗛悩鑸碘偓浣疯厬閺傚洦开始挎潻甯礄閸欘垶鈧绱?        result.setStatusDesc(getStatusDesc(repair.getStatus()));
+        // 4. 状态描述
+        result.setStatusDesc(getStatusDesc(repair.getStatus()));
 
         return result;
     }
 
-    // 閼惧嘲褰囬悩鑸碘偓浣疯厬閺傚洦开始挎潻?    private String getStatusDesc(String status) {
+    // 获取状态描述
+    private String getStatusDesc(String status) {
         switch (status) {
             case "pending":
-                return "瀵板懎顦╅悶?;
+                return "待处理";
             case "processing":
-                return "婢跺嫮鎮婃稉?;
+                return "处理中";
             case "completed":
-                return "瀹告彃鐣幋?;
+                return "已完成";
             case "cancelled":
-                return "瀹告彃褰囧☉?;
+                return "已取消";
             default:
                 return status;
         }
     }
 
     /**
-     * 閻樿埖鈧浇瀚抽弬鍥祮娑擃厽鏋冮幓蹇氬牚
+     * 转换状态描述（冗余方法保留）
      */
     private String convertStatusToDesc(String status) {
         if (status == null) {
-            return "閺堫亞鐓￠悩鑸碘偓?;
+            return "未知状态";
         }
-        // JDK 8 閺€顖涘瘮閻ㄥ嫪绱剁紒?switch 鐠囶厼褰?        switch (status) {
+        switch (status) {
             case "pending":
-                return "瀵板懎顦╅悶?;
+                return "待处理";
             case "processing":
-                return "婢跺嫮鎮婃稉?;
+                return "处理中";
             case "completed":
-                return "瀹告彃鐣幋?;
+                return "已完成";
             case "cancelled":
-                return "瀹告彃褰囧☉?;
+                return "已取消";
             default:
-                return "閺堫亞鐓￠悩鑸碘偓?;
+                return "未知状态";
         }
     }
 
@@ -274,12 +292,13 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
             return false;
         }
         
-        // 妤犲矁鐦夐悩鑸碘偓浣告値濞夋洘鈧?        List<String> validStatuses = Arrays.asList("pending", "processing", "completed", "cancelled");
+        // 校验状态
+        List<String> validStatuses = Arrays.asList("pending", "processing", "completed", "cancelled");
         if (!validStatuses.contains(status)) {
-            throw new RuntimeException("閺冪姵鏅ラ惃鍕Ц閹礁鈧?);
+            throw new RuntimeException("状态不合法");
         }
         
-        // 閹靛綊鍣洪弴瀛樻煀
+        // 批量更新
         List<Repair> repairs = new ArrayList<>();
         for (Long repairId : repairIds) {
             Repair repair = new Repair();
@@ -289,20 +308,23 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
             repairs.add(repair);
         }
         
-        // 娴ｈ法鏁yBatis Plus閻ㄥ嫭澹掗柌蹇旀纯閺傜増鏌熷▔?        return this.updateBatchById(repairs);
+        // 批量更新
+        return this.updateBatchById(repairs);
     }
 
     @Override
     public void exportRepairs(String status, String keyword, HttpServletResponse response) {
-        // 閺屻儴顕楃粭锕€鎮庨弶鈥叉閻ㄥ嫭濮ゆ穱顔芥殶閹?        LambdaQueryWrapper<Repair> queryWrapper = new LambdaQueryWrapper<Repair>()
+        // 构建查询条件
+        LambdaQueryWrapper<Repair> queryWrapper = new LambdaQueryWrapper<Repair>()
                 .orderByDesc(Repair::getCreateTime);
 
-        // --- 閺夊啴妾烘潻鍥ㄦ姢闁槒绶?---
+        // --- 权限控制 ---
         String role = UserContext.getRole();
         Long currentCommunityId = UserContext.getCommunityId();
         
         if ("super_admin".equalsIgnoreCase(role)) {
-             // 鐡掑懐楠囩粻锛勬倞閸涙﹫绱版稉宥呬粵闂勬劕鍩?        } else {
+             // 超级管理员
+        } else {
              if (currentCommunityId == null) {
                   queryWrapper.eq(Repair::getId, -1L);
              } else {
@@ -311,23 +333,23 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
         }
         // -----------------
         
-        // 閻樿埖鈧胶鐡柅?        if (StringUtils.hasText(status)) {
+        // 状态筛选
+        if (StringUtils.hasText(status)) {
             queryWrapper.eq(Repair::getStatus, status);
         }
         
-        // 閸忔娊鏁拠宥嗘偝缁?        if (StringUtils.hasText(keyword)) {
-            // 婢跺嫮鎮婇崗鎶芥暛鐠囧稄绱濋弨顖涘瘮"1閺?01"閺嶇厧绱?            List<String> searchTerms = processSearchKeyword(keyword);
+        // 关键字筛选
+        if (StringUtils.hasText(keyword)) {
+            List<String> searchTerms = processSearchKeyword(keyword);
             final List<Long> houseIds = getAllMatchingHouseIds(searchTerms);
             
             queryWrapper.and(wrapper -> {
-                // 娑撶儤鐦℃稉顏呮偝缁便垽銆嶅ǎ璇插閺夆€叉
                 for (String term : searchTerms) {
                     wrapper.like(Repair::getFaultType, term)
                             .or()
                             .like(Repair::getFaultDesc, term);
                 }
                 
-                // 濞ｈ濮為幋鍨溈ID閺夆€叉
                 if (!houseIds.isEmpty()) {
                     wrapper.or().in(Repair::getHouseId, houseIds);
                 }
@@ -336,20 +358,22 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
         
         List<Repair> repairs = this.list(queryWrapper);
         
-        // 鏉烆剚宕叉稉绡焑pairResult
+        // 转换为VO
         List<RepairResult> repairResults = repairs.stream()
                 .map(this::convertToRepairResult)
                 .collect(Collectors.toList());
         
-        // 鏉╂瑩鍣风€圭偟骞囩粻鈧崡鏇犳畱CSV鐎电厧鍤敍灞筋洤闂団偓Excel鐎电厧鍤崣顖涘潑閸旂嚛OI娓氭繆绂?        try {
-            // 鐠佸墽鐤嗛崫宥呯安婢?            response.setContentType("text/csv;charset=UTF-8");
+        // 导出CSV
+        try {
+            response.setContentType("text/csv;charset=UTF-8");
             response.setHeader("Content-Disposition", "attachment;filename=repairs.csv");
             
-            // 閸愭瑥鍙咰SV閸愬懎顔?            try (PrintWriter writer = response.getWriter()) {
-                // 閸愭瑥鍙嗙悰銊ャ仈
-                writer.println("ID,缁€鎯у隘閸氬秶袨,濡ゅ吋鐖ч崣?閹村灝鐪块崣?閺佸懘娈扮猾璇茬€?閺佸懘娈伴幓蹇氬牚,閻樿埖鈧?婢跺嫮鎮婃径鍥ㄦ暈,閸掓稑缂撻弮鍫曟？");
+            try (PrintWriter writer = response.getWriter()) {
+                // 写入表头
+                writer.println("ID,社区名称,楼栋号,房屋号,故障类型,故障描述,状态,处理备注,创建时间");
                 
-                // 閸愭瑥鍙嗛弫鐗堝祦鐞?                for (RepairResult result : repairResults) {
+                // 写入内容
+                for (RepairResult result : repairResults) {
                     writer.printf("%d,%s,%s,%s,%s,%s,%s,%s,%s%n",
                             result.getId(),
                             result.getCommunityName(),
@@ -365,7 +389,7 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
                 writer.flush();
             }
         } catch (IOException e) {
-            throw new RuntimeException("鐎电厧鍤径杈Е销毁? + e.getMessage());
+            throw new RuntimeException("导出失败：" + e.getMessage());
         }
     }
 
@@ -373,7 +397,7 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
     public RepairStatsResult getRepairStats() {
         RepairStatsResult stats = new RepairStatsResult();
         
-        // --- 閺夊啴妾烘潻鍥ㄦ姢闁槒绶?---
+        // --- 权限控制 ---
         String role = UserContext.getRole();
         Long currentCommunityId = UserContext.getCommunityId();
         
@@ -387,10 +411,11 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
             }
         }
 
-        // 閺屻儴顕楅幀缁樻殶
+        // 统计总数
         stats.setTotal(Math.toIntExact(this.count(baseWrapper)));
         
-        // 閺屻儴顕楅崥鍕Ц閹焦鏆熼柌?        LambdaQueryWrapper<Repair> pendingQuery = baseWrapper.clone().eq(Repair::getStatus, "pending");
+        // 统计各状态数量
+        LambdaQueryWrapper<Repair> pendingQuery = baseWrapper.clone().eq(Repair::getStatus, "pending");
         stats.setPending(Math.toIntExact(this.count(pendingQuery)));
         
         LambdaQueryWrapper<Repair> processingQuery = baseWrapper.clone().eq(Repair::getStatus, "processing");
@@ -405,4 +430,3 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
         return stats;
     }
 }
-

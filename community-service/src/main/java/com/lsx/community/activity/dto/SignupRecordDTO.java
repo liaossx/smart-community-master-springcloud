@@ -1,4 +1,4 @@
-package com.lsx.community.activity.vo;
+package com.lsx.community.activity.dto;
 
 import lombok.Data;
 import java.time.LocalDateTime;

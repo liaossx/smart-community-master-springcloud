@@ -6,7 +6,6 @@ import com.lsx.core.common.annotation.Log;
 import com.lsx.core.common.enums.BusinessType;
 import com.lsx.property.repair.dto.BatchUpdateStatusDTO;
 import com.lsx.property.repair.dto.RepairDto;
-import com.lsx.property.repair.entity.Repair;
 import com.lsx.property.repair.service.RepairService;
 import com.lsx.property.repair.vo.RepairResult;
 import com.lsx.property.repair.vo.RepairStatsResult;
@@ -17,84 +16,85 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/repair")
-@Tag(name = "閹躲儰鎱ㄩ幒銉ュ經", description = "娑撴矮瀵岄幎銉ゆ叏閹绘劒姘﹂妴浣哄Ц閹焦鐓＄拠銏犲挤缁狅紕鎮婇崨妯侯槱閻炲棙甯撮崣?)
+@Tag(name = "报修管理接口", description = "报修提交、查询、状态更新及统计")
 public class RepairController {
 
     @Resource
     private RepairService repairService;
 
-    // 1. 娑撴矮瀵岄幓鎰唉閹躲儰鎱?    @Operation(summary = "閹绘劒姘﹂幎銉ゆ叏销毁涘牅绗熸稉浼欑礆", description = "娑撴矮瀵岄幓鎰唉閹村灝鐪块弫鍛存閹躲儰鎱ㄩ敍宀勬付娴肩姴鍙嗛悽銊﹀煕ID閵嗕焦鍩х仦瀣╀繆閹垬鈧焦鏅犻梾婊嗩嚊閹懐鐡?)
+    @Operation(summary = "提交报修申请", description = "用户提交报修申请")
     @PostMapping("/submit")
     public Result<Boolean> submitRepair(
-            @Parameter(description = "閹躲儰鎱ㄦ穱鈩冧紖DTO销毁涘苯瀵橀崥鐜約erId閵嗕攻uildingNo閵嗕弓ouseNo閵嗕公aultType缁?)
+            @Parameter(description = "报修信息DTO")
             @RequestBody RepairDto repairDto) {
         boolean success = repairService.submitRepair(repairDto);
         if (success) {
-            return Result.success(true); // 閻?success(T data) 鏉╂柨娲栭幋鎰閻樿埖鈧?        } else {
-            return Result.fail("閹绘劒姘︽径杈Е销毁涘矁顕Λ鈧弻銉や繆閹?); // 閻?fail 鏉╂柨娲栨径杈Е閸樼喎娲?        }
-    }
-
-    // 2. 缁狅紕鎮婇崨妯绘纯閺傜増濮ゆ穱顔惧Ц閹?    @Operation(summary = "閺囧瓨鏌婇幎銉ゆ叏閻樿埖鈧緤绱欑粻锛勬倞閸涙﹫绱?, description = "缁狅紕鎮婇崨妯侯槱閻炲棙濮ゆ穱顔煎礋销毁涘本娲块弬所有Ц閹椒璐熸径鍕倞娑?瀹告彃鐣幋?瀹告彃褰囧☉鍫礉閸欘垰锝為崘娆忣槱閻炲棗顦▔?)
-    @PostMapping("/admin/updateStatus")
-    @Log(title = "閹躲儰鎱ㄧ粻锛勬倞", businessType = BusinessType.UPDATE)
-    public Result<Boolean> updateStatus(
-            @Parameter(description = "閹躲儰鎱ㄧ拋鏉跨秿ID", required = true) @RequestParam Long repairId,
-            @Parameter(description = "閻╊喗鐖ｉ悩鑸碘偓渚婄窗processing销毁涘牆顦╅悶鍡曡厬销毁涘鈧恭ompleted销毁涘牆鍑＄€瑰本鍨氶敍澶堚偓涔ncelled销毁涘牆鍑￠崣鏍ㄧХ销毁?, required = true) @RequestParam String status,
-            @Parameter(description = "婢跺嫮鎮婃径鍥ㄦ暈销毁涘牆褰囧☉鍫熸韫囧懎锝為敍?) @RequestParam(required = false) String remark) {
-        try {
-            boolean success = repairService.updateRepairStatus(repairId, status, remark);
-            return success ? Result.success(true) : Result.fail("閺囧瓨鏌婃径杈Е销毁涘本濮ゆ穱顔煎礋娑撳秴鐡ㄩ崷?);
-        } catch (RuntimeException e) {
-            // 閹规洝骞廠ervice鐏炲倹濮忛崙铏规畱娑撴艾濮熷鍌氱埗销毁涘牆顩ч悩鑸碘偓浣风瑝閸氬牊纭堕妴浣稿絿濞戝牊婀繅顐㈩槵濞夘煉绱?            return Result.fail(e.getMessage());
+            return Result.success(true);
+        } else {
+            return Result.fail("提交失败");
         }
     }
 
-    // 3. 娑撴矮瀵岄弻銉嚄閼奉亜绻侀惃鍕Г娣囶喛顔囪ぐ鏇礄閸掑棝銆夐敍?    @Operation(summary = "娑撴矮瀵岄弻銉嚄閼奉亜绻侀惃鍕Г娣囶喛顔囪ぐ?, description = "閸掑棝銆夐弻銉嚄瑜版挸澧犳稉姘瘜閻ㄥ嫭澧嶉張澶嬪Г娣囶喛顔囪ぐ鏇礉閹稿褰佹禍銈嗘闂傛潙鈧帒绨?)
-    @GetMapping("/user/my")
-    public Result<IPage<RepairResult>> getMyRepairs(
-            @Parameter(description = "娑撴矮瀵岄悽銊﹀煕ID", required = true) @RequestParam Long userId,
-            @Parameter(description = "妞ょ數鐖滈敍鍫ョ帛鐠?销毁?) @RequestParam(defaultValue = "1") Integer pageNum,
-            @Parameter(description = "濮ｅ繘銆夐弶鈩冩殶销毁涘牓绮拋?0销毁?) @RequestParam(defaultValue = "10") Integer pageSize) {
-        IPage<RepairResult> resultPage = repairService.getMyRepairs(userId, pageNum, pageSize);
-        return Result.success(resultPage); // 閻╁瓨甯存潻鏂挎礀閸掑棝銆夐弫鐗堝祦
+    @Operation(summary = "更新报修状态(管理员)", description = "管理员更新报修单状态")
+    @PostMapping("/admin/updateStatus")
+    @Log(title = "报修管理", businessType = BusinessType.UPDATE)
+    public Result<Boolean> updateStatus(
+            @Parameter(description = "报修ID", required = true) @RequestParam Long repairId,
+            @Parameter(description = "状态: pending/processing/completed/cancelled", required = true) @RequestParam String status,
+            @Parameter(description = "处理备注") @RequestParam(required = false) String remark) {
+        try {
+            boolean success = repairService.updateRepairStatus(repairId, status, remark);
+            return success ? Result.success(true) : Result.fail("更新状态失败");
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
     }
 
-    // 4. 缁狅紕鎮婇崨妯荤叀鐠囥垺澧嶉張澶嬪Г娣囶喛顔囪ぐ鏇礄閸掑棝銆?閻樿埖鈧胶鐡柅澶涚礆
+    @Operation(summary = "查询我的报修", description = "查询当前登录用户的报修记录")
+    @GetMapping("/user/my")
+    public Result<IPage<RepairResult>> getMyRepairs(
+            @Parameter(description = "用户ID", required = true) @RequestParam Long userId,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer pageNum,
+            @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") Integer pageSize) {
+        IPage<RepairResult> resultPage = repairService.getMyRepairs(userId, pageNum, pageSize);
+        return Result.success(resultPage);
+    }
+
     @GetMapping("/admin/all")
+    @Operation(summary = "查询所有报修(管理员)", description = "管理员查询所有报修记录")
     public Result<IPage<RepairResult>> getAllRepairs(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String keyword) {  // 閴?濞ｈ濮?keyword
+            @RequestParam(required = false) String keyword) {
 
         IPage<RepairResult> resultPage = repairService.getAllRepairs(pageNum, pageSize, status, keyword);
         return Result.success(resultPage);
     }
 
-    // 5. 缁狅紕鎮婇崨妯荤叀鐠囥垹宕熸稉顏冪瑹娑撹崵娈戦幎銉ゆ叏鐠佹澘缍嶉敍鍫濆瀻妞ょ绱?    @Operation(summary = "缁狅紕鎮婇崨妯荤叀鐠囥垹宕熸稉顏冪瑹娑撹崵娈戦幎銉ゆ叏鐠佹澘缍?, description = "閸掑棝銆夐弻銉嚄閹稿洤鐣炬稉姘瘜閻ㄥ嫭澧嶉張澶嬪Г娣囶喛顔囪ぐ鏇礉閹稿褰佹禍銈嗘闂傛潙鈧帒绨?)
+    @Operation(summary = "查询指定用户报修(管理员)", description = "管理员查询指定用户的报修记录")
     @GetMapping("/admin/user")
     public Result<IPage<RepairResult>> getUserRepairs(
-            @Parameter(description = "娑撴矮瀵岄悽銊﹀煕ID", required = true) @RequestParam Long userId,
-            @Parameter(description = "妞ょ數鐖滈敍鍫ョ帛鐠?销毁?) @RequestParam(defaultValue = "1") Integer pageNum,
-            @Parameter(description = "濮ｅ繘銆夐弶鈩冩殶销毁涘牓绮拋?0销毁?) @RequestParam(defaultValue = "10") Integer pageSize) {
+            @Parameter(description = "用户ID", required = true) @RequestParam Long userId,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer pageNum,
+            @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") Integer pageSize) {
         IPage<RepairResult> resultPage = repairService.getUserRepairs(userId, pageNum, pageSize);
-        return Result.success(resultPage); // 閻╁瓨甯存潻鏂挎礀閸掑棝銆夐弫鐗堝祦
+        return Result.success(resultPage);
     }
 
-    // 6. 缁狅紕鎮婇崨妯诲闁插繑娲块弬鐗堝Г娣囶喚濮搁幀?    @PostMapping("/admin/batchUpdateStatus")
-    @Operation(summary = "閹靛綊鍣洪弴瀛樻煀閹躲儰鎱ㄩ悩鑸碘偓?, description = "缁狅紕鎮婇崨妯诲闁插繑娲块弬鏉款樋閺夆剝濮ゆ穱顔惧Ц閹?)
-    @Log(title = "閹躲儰鎱ㄧ粻锛勬倞", businessType = BusinessType.UPDATE)
+    @PostMapping("/admin/batchUpdateStatus")
+    @Operation(summary = "批量更新状态", description = "管理员批量更新报修状态")
+    @Log(title = "报修管理", businessType = BusinessType.UPDATE)
     public Result<Boolean> batchUpdateStatus(@RequestBody BatchUpdateStatusDTO dto) {
         boolean success = repairService.batchUpdateStatus(dto.getRepairIds(), dto.getStatus(), dto.getRemark());
-        return success ? Result.success(true) : Result.fail("閹靛綊鍣洪弴瀛樻煀婢惰精瑙?);
+        return success ? Result.success(true) : Result.fail("批量更新失败");
     }
 
-    // 7. 鐎电厧鍤幎銉ゆ叏閺佺増宓?    @GetMapping("/admin/export")
-    @Operation(summary = "鐎电厧鍤幎銉ゆ叏閺佺増宓?, description = "鐎电厧鍤粭锕€鎮庨弶鈥叉閻ㄥ嫭濮ゆ穱顔芥殶閹诡喕璐烢xcel閹存渿SV")
+    @GetMapping("/admin/export")
+    @Operation(summary = "导出报修记录", description = "导出报修记录为CSV")
     public void exportRepairs(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
@@ -103,12 +103,10 @@ public class RepairController {
         repairService.exportRepairs(status, keyword, response);
     }
 
-    // 8. 閼惧嘲褰囬幎銉ゆ叏缂佺喕顓搁弫鐗堝祦
     @GetMapping("/admin/stats")
-    @Operation(summary = "閼惧嘲褰囬幎銉ゆ叏缂佺喕顓搁弫鐗堝祦", description = "閼惧嘲褰囬崥鍕潚閻樿埖鈧焦濮ゆ穱顔炬畱缂佺喕顓搁弫浼村櫤")
+    @Operation(summary = "获取报修统计", description = "获取报修统计数据")
     public Result<RepairStatsResult> getRepairStats() {
         RepairStatsResult stats = repairService.getRepairStats();
         return Result.success(stats);
     }
-
 }

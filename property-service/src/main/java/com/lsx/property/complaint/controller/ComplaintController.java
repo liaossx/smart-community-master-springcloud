@@ -14,21 +14,21 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/complaint")
-@Tag(name = "閹舵洝鐦斿楦款唴閹恒儱褰?)
+@Tag(name = "投诉建议接口")
 public class ComplaintController {
 
     @Autowired
     private ComplaintService complaintService;
 
     @PostMapping("/submit")
-    @Operation(summary = "閹绘劒姘﹂幎鏇＄様")
+    @Operation(summary = "提交投诉")
     public Result<Long> submit(@RequestBody SysComplaint body) {
         Long id = complaintService.submit(body);
         return Result.success(id);
     }
 
     @GetMapping("/my")
-    @Operation(summary = "閹存垹娈戦幎鏇＄様")
+    @Operation(summary = "我的投诉")
     public Result<IPage<SysComplaint>> my(@RequestParam("userId") Long userId,
                                           @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
                                           @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
@@ -37,7 +37,7 @@ public class ComplaintController {
     }
 
     @GetMapping("/list")
-    @Operation(summary = "缁狅紕鎮婇崨?閹舵洝鐦旈崚妤勩€?)
+    @Operation(summary = "管理员查询列表")
     public Result<IPage<ComplaintDTO>> list(@RequestParam(value = "status", required = false) String status,
                                             @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
                                             @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
@@ -46,11 +46,10 @@ public class ComplaintController {
     }
 
     @PutMapping("/handle")
-    @Operation(summary = "缁狅紕鎮婇崨妯侯槱閻炲棙濮囩拠?)
-    @Log(title = "閹舵洝鐦旂粻锛勬倞", businessType = BusinessType.UPDATE)
+    @Operation(summary = "处理投诉")
+    @Log(title = "投诉建议", businessType = BusinessType.UPDATE)
     public Result<Boolean> handle(@RequestParam("id") Long id, @RequestParam("result") String result) {
         boolean ok = complaintService.handle(id, result);
-        return ok ? Result.success(true) : Result.fail("婢跺嫮鎮婃径杈Е");
+        return ok ? Result.success(true) : Result.fail("处理失败");
     }
 }
-

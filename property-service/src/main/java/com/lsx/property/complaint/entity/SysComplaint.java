@@ -21,5 +21,12 @@ public class SysComplaint {
     private String result;
     private LocalDateTime createTime;
     private LocalDateTime handleTime;
+    
+    public String getImgs() {
+        return images;
+    }
+    
+    public void setImgs(String imgs) {
+        this.images = imgs;
+    }
 }
-

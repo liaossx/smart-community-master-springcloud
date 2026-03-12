@@ -7,8 +7,9 @@ import java.time.LocalDateTime;
 public class ParkingCarAuditVO {
     private Long id;
     private String plateNo;
-    private String userName; // 申请浜哄鍚?    private String spaceNo;  // 申请车位鍙?    private String status;   // PENDING, APPROVED, REJECTED
+    private String userName; // 申请人姓名
+    private String spaceNo;  // 申请车位号
+    private String status;   // PENDING, APPROVED, REJECTED
     private String rejectReason;
     private LocalDateTime createTime;
 }
-

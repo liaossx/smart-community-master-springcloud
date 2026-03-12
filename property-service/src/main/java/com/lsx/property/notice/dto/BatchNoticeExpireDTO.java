@@ -9,20 +9,20 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@Schema(description = "閹靛綊鍣虹拋鍓х枂閸忣剙鎲℃潻鍥ㄦ埂閺冨爼妫块崣鍌涙殶")
+@Schema(description = "批量通知过期DTO")
 public class BatchNoticeExpireDTO {
 
-    @Schema(description = "閸忣剙鎲D閸掓銆?, required = true)
-    @NotEmpty(message = "閸忣剙鎲D閸掓銆冩稉宥堝厴娑撹櫣鈹?)
+    @Schema(description = "通知ID列表", required = true)
+    @NotEmpty(message = "通知ID列表不能为空")
     private List<Long> noticeIds;
 
-    @Schema(description = "鏉╁洦婀￠弮鍫曟？缁鐎?, required = true)
-    @NotNull(message = "鏉╁洦婀￠弮鍫曟？缁鐎锋稉宥堝厴娑撹櫣鈹?)
+    @Schema(description = "过期类型", required = true)
+    @NotNull(message = "过期类型不能为空")
     private NoticeExpireDTO.ExpireType expireType;
 
-    @Schema(description = "閼奉亜鐣炬稊澶庣箖閺堢喐妞傞梻?)
+    @Schema(description = "自定义过期时间")
     private LocalDateTime customExpireTime;
 
-    @Schema(description = "婢垛晜鏆?)
+    @Schema(description = "天数")
     private Integer days;
 }

@@ -4,5 +4,6 @@ import lombok.Data;
 
 @Data
 public class PayFeeDTO {
-    private Long feeId;              // 鐠愶箑宕烮D
-    private String payType;          // 閺€顖欑帛閺傜懓绱?}
+    private Long feeId;              // 费用ID
+    private String payType;          // 支付方式
+}

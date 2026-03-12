@@ -17,4 +17,7 @@ public interface UserServiceClient {
     
     @GetMapping("/count/role")
     Long countUsersByRole(@RequestParam("role") String role);
+
+    @GetMapping("/{id}/realname")
+    String getRealNameById(@PathVariable("id") Long id);
 }
