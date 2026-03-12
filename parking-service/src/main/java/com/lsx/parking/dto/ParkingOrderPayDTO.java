@@ -9,18 +9,9 @@ public class ParkingOrderPayDTO {
     @Schema(description = "业主ID", required = true)
     private Long userId;
 
-    @Schema(description = "鏀粯娓犻亾锛圵ECHAT/ALIPAY/CASH锛?, required = true)
+    @Schema(description = "支付渠道（WECHAT/ALIPAY/CASH）", required = true)
     private String payChannel;
 
-    @Schema(description = "鏀粯备注/鍑瘉")
+    @Schema(description = "支付备注/凭证")
     private String payRemark;
 }
-
-
-
-
-
-
-
-
-

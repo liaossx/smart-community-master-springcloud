@@ -8,6 +8,7 @@ import com.lsx.parking.entity.ParkingSpace;
 import com.lsx.parking.vo.ParkingAuthorizeVO;
 import com.lsx.parking.vo.ParkingSpaceRemainVO;
 import com.lsx.parking.vo.ParkingSpaceVO;
+import com.lsx.parking.dto.ParkingSpaceQueryDTO;
 
 import java.util.List;
 
@@ -31,11 +32,7 @@ public interface ParkingSpaceService extends IService<ParkingSpace> {
 
     IPage<ParkingAuthorizeVO> listMyAuthorizes(Long userId, Integer pageNum, Integer pageSize);
 
-    IPage<ParkingSpaceVO> adminListSpaces(com.lsx.core.parking.dto.ParkingSpaceQueryDTO dto);
+    IPage<ParkingSpaceVO> adminListSpaces(ParkingSpaceQueryDTO dto);
 
     IPage<ParkingSpaceVO> listAvailableFixedSpaces(Long communityId, Integer pageNum, Integer pageSize);
 }
-
-
-
-

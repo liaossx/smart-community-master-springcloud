@@ -22,12 +22,13 @@ public class ParkingPlateServiceImpl extends ServiceImpl<ParkingPlateMapper, Par
     private final ParkingSpaceLeaseMapper leaseMapper;
 
     public void bindPlate(Long userId, Long spaceId, String plateNo) {
-        // 鏍￠獙用户鏄惁鎷ユ湁璇ヨ溅浣?        ParkingSpaceLease lease = leaseMapper.getActiveLease(userId, spaceId);
+        // 校验用户是否拥有该车位
+        ParkingSpaceLease lease = leaseMapper.getActiveLease(userId, spaceId);
         if (lease == null) {
-            throw new RuntimeException("浣犳病鏈夋潈闄愮粦瀹氳车位");
+            throw new RuntimeException("你没有权限绑定该车位");
         }
 
-        // 宸插瓨鍦ㄥ垯鍚敤
+        // 已存在则启用
         ParkingSpacePlate plate = plateMapper.selectBySpaceAndPlate(spaceId, plateNo);
         if (plate != null) {
             plate.setStatus("ACTIVE");
@@ -48,7 +49,7 @@ public class ParkingPlateServiceImpl extends ServiceImpl<ParkingPlateMapper, Par
     public void unbindPlate(Long userId, Long spaceId, String plateNo) {
         ParkingSpacePlate plate = plateMapper.selectBySpaceAndPlate(spaceId, plateNo);
         if (plate == null || !plate.getUserId().equals(userId)) {
-            throw new RuntimeException("浣犳病鏈夋潈闄愯В缁戣车牌");
+            throw new RuntimeException("你没有权限解绑该车牌");
         }
         plate.setStatus("DISABLED");
         plate.setUpdateTime(LocalDateTime.now());

@@ -11,16 +11,15 @@ public class SpaceRenewDTO {
     @Schema(description = "车位ID", required = true)
     private Long spaceId;
 
-    @Schema(description = "缁垂鏈堟暟", required = true, example = "1")
+    @Schema(description = "续费月数", required = true, example = "1")
     private Integer durationMonths;
 
-    @Schema(description = "鏀粯方式", example = "BALANCE")
+    @Schema(description = "支付方式", example = "BALANCE")
     private String payMethod;
 
-    @Schema(description = "鏀粯金额锛堝悗绔渶浜屾鏍￠獙锛?, required = true)
+    @Schema(description = "支付金额（后端需二次校验）", required = true)
     private BigDecimal amount;
 
-    @Schema(description = "用户ID锛堝彲閫夛紝寤鸿浠嶵oken鍙栵級")
+    @Schema(description = "用户ID（可选，建议从Token取）")
     private Long userId;
 }
-

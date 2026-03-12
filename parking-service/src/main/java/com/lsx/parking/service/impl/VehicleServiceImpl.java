@@ -23,9 +23,7 @@ import org.springframework.util.Assert;
 import java.time.LocalDateTime;
 
 @Service
-public class VehicleServiceImpl
-        extends ServiceImpl<VehicleMapper, Vehicle>
-        implements VehicleService {
+public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> implements VehicleService {
 
     @Autowired
     private ParkingPlateMapper plateMapper;
@@ -39,22 +37,24 @@ public class VehicleServiceImpl
     public void bindVehicle(VehicleBindDTO dto) {
 
         Assert.notNull(dto.getUserId(), "用户ID不能为空");
-        Assert.hasText(dto.getPlateNo(), "车牌鍙蜂笉鑳戒负绌?);
-        Assert.notNull(dto.getSpaceId(), "璇烽€夋嫨鍏宠仈车位");
+        Assert.hasText(dto.getPlateNo(), "车牌号不能为空");
+        Assert.notNull(dto.getSpaceId(), "请选择关联车位");
 
-        // 1. 淇濆瓨车辆鍩烘湰淇℃伅锛堝鏋滀笉瀛樺湪锛?        Vehicle exist = this.lambdaQuery()
+        // 1. 保存车辆基本信息（如果不存在）
+        Vehicle exist = this.lambdaQuery()
                 .eq(Vehicle::getPlateNo, dto.getPlateNo())
                 .one();
 
         if (exist != null) {
             if (!exist.getUserId().equals(dto.getUserId())) {
-                throw new RuntimeException("璇ヨ溅鐗屽凡琚叾浠栫敤鎴风粦瀹?);
+                throw new RuntimeException("该车牌已被其他用户绑定");
             }
-            // 宸插瓨鍦ㄤ笖鏄嚜宸辩殑锛屾洿鏂颁俊鎭?            if (dto.getColor() != null) exist.setColor(dto.getColor());
+            // 已存在且是自己的，更新信息
+            if (dto.getColor() != null) exist.setColor(dto.getColor());
             if (dto.getBrand() != null) exist.setBrand(dto.getBrand());
             this.updateById(exist);
         } else {
-            // 鏂板车辆
+            // 新增车辆
             Vehicle vehicle = new Vehicle();
             vehicle.setUserId(dto.getUserId());
             vehicle.setPlateNo(dto.getPlateNo());
@@ -66,16 +66,18 @@ public class VehicleServiceImpl
             this.save(vehicle);
         }
 
-        // 2. 绑定鍒版寚瀹氳溅浣?(biz_parking_space_plate)
-        // 妫€查询车位涓嬫槸鍚﹀凡绑定璇ヨ溅鐗?        Long count = plateMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ParkingSpacePlate>()
+        // 2. 绑定到指定车位 (biz_parking_space_plate)
+        // 检查该车位下是否已绑定该车牌
+        Long count = plateMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ParkingSpacePlate>()
                 .eq(ParkingSpacePlate::getSpaceId, dto.getSpaceId())
                 .eq(ParkingSpacePlate::getPlateNo, dto.getPlateNo())
-                .ne(ParkingSpacePlate::getStatus, "REJECTED")); // 拒绝鐨勫彲浠ラ噸鎻?
+                .ne(ParkingSpacePlate::getStatus, "REJECTED")); // 拒绝的可以重提
+
         if (count > 0) {
-            throw new RuntimeException("璇ヨ溅浣嶅凡绑定鎴栨鍦ㄥ鏍告车牌");
+            throw new RuntimeException("该车位已绑定或正在审核此车牌");
         }
 
-        // 鎻掑叆车位-车牌鍏宠仈记录锛岀姸鎬佽涓?PENDING
+        // 插入车位-车牌关联记录，状态设为 PENDING
         ParkingSpacePlate plateBind = new ParkingSpacePlate();
         plateBind.setSpaceId(dto.getSpaceId());
         plateBind.setUserId(dto.getUserId());
@@ -116,14 +118,15 @@ public class VehicleServiceImpl
                     }
                 }
                 
-                // 濉厖车位鍙?                if (item.getSpaceId() != null) {
+                // 填充车位号
+                if (item.getSpaceId() != null) {
                     ParkingSpace space = spaceMapper.selectById(item.getSpaceId());
                     if (space != null) {
                         vo.setSpaceNo(space.getSpaceNo());
                     }
                 }
             } catch (Exception e) {
-                // 鍗充娇鍏宠仈查询失败锛屼篃涓嶅奖鍝嶄富鏁版嵁鏄剧ず
+                // 即使关联查询失败，也不影响主数据显示
                 e.printStackTrace();
             }
             
@@ -136,10 +139,10 @@ public class VehicleServiceImpl
     public void auditCar(ParkingCarAuditDTO dto) {
         ParkingSpacePlate plate = plateMapper.selectById(dto.getId());
         if (plate == null) {
-            throw new RuntimeException("申请记录不存在?);
+            throw new RuntimeException("申请记录不存在");
         }
         if (!"PENDING".equals(plate.getStatus())) {
-            throw new RuntimeException("璇ヨ褰曞凡瀹℃牳");
+            throw new RuntimeException("该记录已审核");
         }
         
         plate.setStatus(dto.getStatus());

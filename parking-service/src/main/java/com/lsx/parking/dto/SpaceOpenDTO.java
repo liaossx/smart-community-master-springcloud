@@ -7,19 +7,18 @@ import java.math.BigDecimal;
 @Data
 public class SpaceOpenDTO {
 
-    @Schema(description = "车位ID鎴栫粦瀹氳褰旾D", required = true)
+    @Schema(description = "车位ID或绑定记录ID", required = true)
     private Long spaceId;
 
-    @Schema(description = "璐拱时长(鏈?", required = true)
+    @Schema(description = "购买时长(月)", required = true)
     private Integer durationMonths;
 
-    @Schema(description = "鏀粯方式 (濡?BALANCE)", required = true)
+    @Schema(description = "支付方式 (如 BALANCE)", required = true)
     private String payMethod;
 
-    @Schema(description = "鏀粯金额", required = true)
+    @Schema(description = "支付金额", required = true)
     private BigDecimal amount;
 
-    @Schema(description = "用户ID (鍙€夛紝鑻ヤ笉浼犲垯浠嶤ontext鑾峰彇)")
+    @Schema(description = "用户ID (可选，若不传则从Context获取)")
     private Long userId;
 }
-

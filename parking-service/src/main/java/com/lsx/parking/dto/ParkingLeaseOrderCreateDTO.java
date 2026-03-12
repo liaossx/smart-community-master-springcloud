@@ -14,7 +14,7 @@ public class ParkingLeaseOrderCreateDTO {
     private String leaseType;
 
     /**
-     * 车牌鍙?(鍙€夛紝棣栨鍔炵悊鏃剁敤浜庣粦瀹?
+     * 车牌号 (可选，首次办理时用于绑定)
      */
     private String plateNo;
 }

@@ -145,16 +145,14 @@ public class ParkingReserveServiceImpl
 
     private String toStatusText(String status) {
         if ("RESERVED".equals(status)) {
-            return "预约涓?;
+            return "预约中";
         }
         if ("EXPIRED".equals(status)) {
-            return "已过期?;
+            return "已过期";
         }
         if ("CANCELLED".equals(status)) {
-            return "已取消?;
+            return "已取消";
         }
         return status;
     }
 }
-
-

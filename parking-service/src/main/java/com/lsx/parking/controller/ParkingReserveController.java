@@ -19,7 +19,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/parking/reserve")
-@Tag(name = "鍋滆溅-车位棰勮")
+@Tag(name = "停车-车位预订")
 @Slf4j
 public class ParkingReserveController {
 
@@ -27,7 +27,7 @@ public class ParkingReserveController {
     private ParkingReserveService parkingReserveService;
 
     @PostMapping
-    @Operation(summary = "车位棰勮锛堢敤鎴峰彂璧凤級")
+    @Operation(summary = "车位预订（用户发起）")
     public Result<Map<String, Object>> createReserve(@RequestBody ParkingReserveCreateDTO dto) {
         try {
             Long reserveId = parkingReserveService.createReserve(dto);
@@ -39,29 +39,29 @@ public class ParkingReserveController {
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("创建车位棰勮异常", e);
-            return Result.fail("棰勮失败锛岃绋嶅悗鍐嶈瘯");
+            log.error("创建车位预订异常", e);
+            return Result.fail("预订失败，请稍后再试");
         }
     }
 
     @PostMapping("/cancel")
-    @Operation(summary = "鍙栨秷棰勮锛堢敤鎴蜂富鍔ㄥ彇娑堬級")
+    @Operation(summary = "取消预订（用户主动取消）")
     public Result<Map<String, Object>> cancelReserve(@RequestBody ParkingReserveCancelDTO dto) {
         try {
             Boolean success = parkingReserveService.cancelReserve(dto);
             Map<String, Object> data = new HashMap<>();
             data.put("success", success);
-            return success ? Result.success(data) : Result.fail("鍙栨秷失败");
+            return success ? Result.success(data) : Result.fail("取消失败");
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("鍙栨秷车位棰勮异常", e);
-            return Result.fail("鍙栨秷失败锛岃绋嶅悗鍐嶈瘯");
+            log.error("取消车位预订异常", e);
+            return Result.fail("取消失败，请稍后再试");
         }
     }
 
     @GetMapping("/my/list")
-    @Operation(summary = "鎴戠殑棰勮鍒楄〃锛堢敤鎴锋煡鐪嬶級")
+    @Operation(summary = "我的预订列表（用户查看）")
     public Result<Map<String, Object>> listMyReserves(@RequestParam("userId") Long userId,
                                                       @RequestParam(value = "status", required = false) String status,
                                                       @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
@@ -82,13 +82,13 @@ public class ParkingReserveController {
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("查询鎴戠殑棰勮鍒楄〃异常", e);
-            return Result.fail("查询失败锛岃绋嶅悗鍐嶈瘯");
+            log.error("查询我的预订列表异常", e);
+            return Result.fail("查询失败，请稍后再试");
         }
     }
 
     @GetMapping("/admin/list")
-    @Operation(summary = "管理员樻煡鐪嬮璁㈠垪琛?)
+    @Operation(summary = "管理员查看预订列表")
     public Result<Map<String, Object>> adminListReserves(@RequestParam(value = "spaceNo", required = false) String spaceNo,
                                                          @RequestParam(value = "userId", required = false) Long userId,
                                                          @RequestParam(value = "status", required = false) String status,
@@ -112,26 +112,24 @@ public class ParkingReserveController {
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("管理员樻煡璇㈤璁㈠垪琛ㄥ紓甯?, e);
-            return Result.fail("查询失败锛岃绋嶅悗鍐嶈瘯");
+            log.error("管理员查询预订列表异常", e);
+            return Result.fail("查询失败，请稍后再试");
         }
     }
 
     @PostMapping("/admin/cancel")
-    @Operation(summary = "管理员樺己鍒跺彇娑堥璁?)
+    @Operation(summary = "管理员强制取消预订")
     public Result<Map<String, Object>> adminCancelReserve(@RequestBody ParkingReserveAdminCancelDTO dto) {
         try {
             Boolean success = parkingReserveService.adminCancelReserve(dto);
             Map<String, Object> data = new HashMap<>();
             data.put("success", success);
-            return success ? Result.success(data) : Result.fail("鍙栨秷失败");
+            return success ? Result.success(data) : Result.fail("取消失败");
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("管理员樺己鍒跺彇娑堥璁㈠紓甯?, e);
-            return Result.fail("鍙栨秷失败锛岃绋嶅悗鍐嶈瘯");
+            log.error("管理员强制取消预订异常", e);
+            return Result.fail("取消失败，请稍后再试");
         }
     }
 }
-
-

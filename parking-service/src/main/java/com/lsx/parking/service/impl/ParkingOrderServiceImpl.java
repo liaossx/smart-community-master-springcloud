@@ -44,7 +44,7 @@ public class ParkingOrderServiceImpl
     public Long createOrder(ParkingOrderCreateDTO dto) {
 
         Assert.notNull(dto.getUserId(), "业主ID不能为空");
-        Assert.notNull(dto.getAmount(), "订单金额不能为空");
+        Assert.notNull(dto.getAmount(), "订单金额不能为空");
 
         String orderType;
         Long spaceId = dto.getSpaceId();
@@ -52,29 +52,29 @@ public class ParkingOrderServiceImpl
         if (spaceId != null) {
             ParkingSpace space = parkingSpaceMapper.selectById(spaceId);
             if (space == null) {
-                throw new RuntimeException("车位不存在?);
+                throw new RuntimeException("车位不存在");
             }
             
-            // 鍙湁 TEMP 绫诲瀷闇€瑕佹牎楠屾槸鍚﹀彲鐢紝鏈堢/骞寸閫氬父鏄湪鍗犵敤状态€佷笅缁垂
-            // 浣嗗鏋滄槸棣栨开始€閫氾紝涔熷彲鑳芥槸 AVAILABLE
-            // 杩欓噷閫昏緫鍙兘闇€瑕佽皟鏁达細
-            // 1. 濡傛灉鏄复鍋?(TEMP)锛屽繀椤绘槸 AVAILABLE
-            // 2. 濡傛灉鏄湀绉?骞寸 (FIXED)锛屽彲浠ユ槸 AVAILABLE (棣栨) 鎴?OCCUPIED/DISABLED (缁垂)
+            // 只有 TEMP 类型需要校验是否可用，月租/年租通常是在占用状态下续费
+            // 但如果是首次开通，也可能是 AVAILABLE
+            // 这里逻辑可能需要调整：
+            // 1. 如果是临停 (TEMP)，必须是 AVAILABLE
+            // 2. 如果是月租/年租 (FIXED)，可以是 AVAILABLE (首次) 或 OCCUPIED/DISABLED (续费)
             
             if ("TEMP".equals(space.getSpaceType())) {
                 if (!"AVAILABLE".equals(space.getStatus())) {
-                     throw new RuntimeException("车位褰撳墠涓嶅彲鐢?);
+                     throw new RuntimeException("车位当前不可用");
                 }
                 orderType = "TEMP";
             } else {
                 // FIXED
-                // 鍏佽鍓嶇浼犲叆 orderType (MONTHLY/YEARLY)锛屽鏋滀笉浼犲垯榛樿涓?MONTHLY
+                // 允许前端传入 orderType (MONTHLY/YEARLY)，如果不传则默认为 MONTHLY
                 orderType = StringUtils.hasText(dto.getOrderType()) ? dto.getOrderType() : "MONTHLY";
             }
             
             dto.setOrderType(orderType);
         } else {
-            // 鏈寚瀹氳溅浣?鈫?临时订单
+            // 未指定车位 -> 临时订单
             orderType = "TEMP";
             dto.setOrderType(orderType);
         }
@@ -84,7 +84,8 @@ public class ParkingOrderServiceImpl
 
         order.setOrderNo(generateOrderNo());
         order.setStatus(STATUS_UNPAID);
-        // 璁剧疆社区ID锛氫紭鍏堝彇车位鐨勭ぞ鍖猴紱鍚﹀垯鍙栫櫥褰曚笂涓嬫枃鐨勭ぞ鍖?        if (spaceId != null) {
+        // 设置社区ID：优先取车位的社区；否则取登录上下文的社区
+        if (spaceId != null) {
             ParkingSpace space = parkingSpaceMapper.selectById(spaceId);
             if (space != null) {
                 order.setCommunityId(space.getCommunityId());
@@ -150,23 +151,24 @@ public class ParkingOrderServiceImpl
 
         ParkingOrder order = this.getById(orderId);
         if (order == null) {
-            throw new RuntimeException("订单不存在?);
+            throw new RuntimeException("订单不存在");
         }
         if (!order.getUserId().equals(dto.getUserId())) {
-            throw new RuntimeException("鏃犳潈操作璇ヨ鍗?);
+            throw new RuntimeException("无权操作该订单");
         }
         if (!STATUS_UNPAID.equals(order.getStatus())) {
-            throw new RuntimeException("订单宸插鐞?);
+            throw new RuntimeException("订单已处理");
         }
 
-        // 1锔忊儯 更新订单状态€?        order.setStatus(STATUS_PAID);
+        // 1. 更新订单状态
+        order.setStatus(STATUS_PAID);
         order.setPayChannel(dto.getPayChannel());
         order.setPayRemark(dto.getPayRemark());
         order.setPayTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         this.updateById(order);
 
-        // 2锔忊儯 濡傛灉鎸囧畾浜嗚溅浣?鈫?鍗犵敤车位
+        // 2. 如果指定了车位 -> 占用车位
         if (order.getSpaceId() != null) {
             ParkingSpace space = parkingSpaceMapper.selectById(order.getSpaceId());
             if (space != null) {
@@ -192,5 +194,3 @@ public class ParkingOrderServiceImpl
                 + RandomUtil.randomNumbers(4);
     }
 }
-
-

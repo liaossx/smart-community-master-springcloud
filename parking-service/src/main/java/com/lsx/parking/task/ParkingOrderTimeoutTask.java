@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -22,11 +23,11 @@ public class ParkingOrderTimeoutTask {
     @Scheduled(cron = "0 * * * * ?")
     public void cancelUnpaidOrders() {
 
-        log.info("銆愬畾鏃朵换鍔°€戝紑濮嬫壂鎻忚秴鏃舵湭鏀粯订单");
+        log.info("【定时任务】开始扫描超时未支付订单");
 
         LocalDateTime timeoutThreshold = LocalDateTime.now().minusMinutes(TIMEOUT_MINUTES);
 
-        // 1锔忊儯 查询鍊欓€夎鍗曪紙鍙煡锛屼笉鐩存帴鏀癸級
+        // 1. 查询候选订单（只查，不直接改）
         List<ParkingOrder> overdueOrders = parkingOrderMapper.selectList(
                 Wrappers.<ParkingOrder>lambdaQuery()
                         .eq(ParkingOrder::getStatus, "UNPAID")
@@ -34,11 +35,12 @@ public class ParkingOrderTimeoutTask {
                         .last("LIMIT 100")
         );
 
-        log.info("銆愬畾鏃朵换鍔°€戝彂鐜?{} 鏉¤秴鏃惰鍗?, overdueOrders.size());
+        log.info("【定时任务】发现 {} 条超时订单", overdueOrders.size());
 
         for (ParkingOrder order : overdueOrders) {
             try {
-                // 2锔忊儯 鏉′欢更新锛堟牳蹇冿紒锛?                int rows = parkingOrderMapper.update(
+                // 2. 条件更新（核心！）
+                int rows = parkingOrderMapper.update(
                         null,
                         Wrappers.<ParkingOrder>lambdaUpdate()
                                 .eq(ParkingOrder::getId, order.getId())
@@ -48,16 +50,16 @@ public class ParkingOrderTimeoutTask {
                 );
 
                 if (rows > 0) {
-                    log.info("銆愯鍗曞彇娑堟垚鍔熴€憃rderNo={}", order.getOrderNo());
+                    log.info("【订单取消成功】orderNo={}", order.getOrderNo());
                 } else {
-                    log.info("銆愯鍗曞凡琚鐞嗐€憃rderNo={}锛屽彲鑳藉凡鏀粯鎴栧凡鍙栨秷", order.getOrderNo());
+                    log.info("【订单已被处理】orderNo={}，可能已支付或已取消", order.getOrderNo());
                 }
 
             } catch (Exception e) {
-                log.error("銆愯鍗曞彇娑堝紓甯搞€憃rderNo={}", order.getOrderNo(), e);
+                log.error("【订单取消异常】orderNo={}", order.getOrderNo(), e);
             }
         }
 
-        log.info("銆愬畾鏃朵换鍔°€戞壂鎻忓畬鎴?);
+        log.info("【定时任务】扫描完成");
     }
 }

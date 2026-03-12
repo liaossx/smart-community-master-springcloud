@@ -186,5 +186,11 @@ public class UserController {
     public Long countUsersByRole(@RequestParam("role") String role) {
         return userService.count(new LambdaQueryWrapper<User>().eq(User::getRole, role));
     }
+
+    @GetMapping("/{id}/realname")
+    public String getRealNameById(@PathVariable("id") Long id) {
+        User user = userService.getById(id);
+        return user != null ? user.getRealName() : null;
+    }
 }
 

@@ -6,11 +6,9 @@ import lombok.Data;
 @Data
 public class ParkingReserveAdminCancelDTO {
 
-    @Schema(description = "棰勮ID")
+    @Schema(description = "预订ID")
     private Long reserveId;
 
-    @Schema(description = "鍙栨秷原因")
+    @Schema(description = "取消原因")
     private String reason;
 }
-
-

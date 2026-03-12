@@ -30,12 +30,12 @@ public class VehicleController {
     @Operation(summary = "绑定车辆")
     public Result<Void> bindVehicle(@RequestBody VehicleBindDTO dto) {
         Long userId = dto.getUserId();
-        // 濡傛灉 DTO 涓病浼?userId锛屽皾璇曚粠 UserContext 鑾峰彇锛堥€傞厤业主绔洿鎺ヨ皟鐢級
+        // 如果 DTO 中没传 userId，尝试从 UserContext 获取（适配业主端直接调用）
         if (userId == null) {
             userId = UserContext.getCurrentUserId();
         }
         if (userId == null) {
-            return Result.fail("鏈櫥褰曟垨参数错误");
+            return Result.fail("未登录或参数错误");
         }
         dto.setUserId(userId);
         
@@ -48,7 +48,7 @@ public class VehicleController {
     }
 
     @GetMapping("/audit/list")
-    @Operation(summary = "查询车辆瀹℃牳鍒楄〃")
+    @Operation(summary = "查询车辆审核列表")
     public Result<IPage<ParkingCarAuditVO>> listAudit(
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") Integer pageNum,
@@ -59,7 +59,7 @@ public class VehicleController {
     }
 
     @PostMapping("/audit")
-    @Operation(summary = "瀹℃牳车辆绑定申请")
+    @Operation(summary = "审核车辆绑定申请")
     public Result<Void> auditCar(@RequestBody ParkingCarAuditDTO dto) {
         try {
             vehicleService.auditCar(dto);

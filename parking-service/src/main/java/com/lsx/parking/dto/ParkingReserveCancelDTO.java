@@ -9,8 +9,6 @@ public class ParkingReserveCancelDTO {
     @Schema(description = "用户ID")
     private Long userId;
 
-    @Schema(description = "棰勮ID")
+    @Schema(description = "预订ID")
     private Long reserveId;
 }
-
-

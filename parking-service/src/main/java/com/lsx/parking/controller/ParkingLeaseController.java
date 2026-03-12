@@ -16,16 +16,17 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequestMapping("/api/parking/lease")
-@Tag(name = "鍋滆溅-鏈堝崱")
+@Tag(name = "停车-月卡")
 public class ParkingLeaseController {
 
     @Autowired
     private ParkingLeaseService parkingLeaseService;
 
     /**
-     * 璐拱/缁垂鏈堝崱锛岀敓鎴愯鍗?     */
+     * 购买/续费月卡，生成订单
+     */
     @PostMapping("/order/create")
-    @Operation(summary = "创建鏈堝崱订单", description = "璐拱鎴栫画璐规湀鍗★紝生成鏈敮浠樿鍗?)
+    @Operation(summary = "创建月卡订单", description = "购买或续费月卡，生成未支付订单")
     public Result<Long> createLeaseOrder(@RequestBody ParkingLeaseOrderCreateDTO dto) {
         try {
             Long orderId = parkingLeaseService.createLeaseOrder(dto);
@@ -33,27 +34,26 @@ public class ParkingLeaseController {
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("创建鏈堝崱订单异常", e);
-            return Result.fail("创建鏈堝崱订单失败锛岃绋嶅悗鍐嶈瘯");
+            log.error("创建月卡订单异常", e);
+            return Result.fail("创建月卡订单失败，请稍后重试");
         }
     }
 
     /**
-     * 鏀粯鏈堝崱订单
+     * 支付月卡订单
      */
     @PostMapping("/order/pay")
-    @Operation(summary = "鏀粯鏈堝崱订单", description = "鏀粯鏈堝崱订单鍚庣郴统计嚜鍔ㄧ敓鏁堟垨缁湡")
+    @Operation(summary = "支付月卡订单", description = "支付月卡订单后系统自动生效或续期")
     public Result<Void> payLeaseOrder(@RequestBody ParkingLeaseOrderPayDTO dto) {
         try {
-            log.info("鎺ユ敹鍒版湀鍗℃敮浠樿姹? 订单ID={}, 鏀粯娓犻亾={}", dto.getOrderId(), dto.getPayChannel());
+            log.info("接收到月卡支付请求: 订单ID={}, 支付渠道={}", dto.getOrderId(), dto.getPayChannel());
             parkingLeaseService.payLeaseOrder(dto);
             return Result.success();
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("鏀粯鏈堝崱订单异常", e);
-            return Result.fail("鏀粯鏈堝崱订单失败锛岃绋嶅悗鍐嶈瘯");
+            log.error("支付月卡订单异常", e);
+            return Result.fail("支付月卡订单失败，请稍后重试");
         }
     }
 }
-

@@ -5,9 +5,9 @@ import lombok.Data;
 @Data
 public class ParkingPaySuccessDTO {
 
-    /** 订单鍙?*/
+    /** 订单号 */
     private String orderNo;
 
-    /** 鏀粯娓犻亾 */
+    /** 支付渠道 */
     private String payChannel; // WECHAT / ALIPAY
 }

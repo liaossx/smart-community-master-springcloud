@@ -41,21 +41,23 @@ public class ParkingGateServiceImpl implements ParkingGateService {
     public void enterGate(ParkingGateEnterDTO dto) {
 
         if (!StringUtils.hasText(dto.getPlateNo())) {
-            throw new RuntimeException("车牌鍙蜂笉鑳戒负绌?);
+            throw new RuntimeException("车牌号不能为空");
         }
 
-        String plateNo = dto.getPlateNo();  // 杩欓噷鑾峰彇浜嗚溅鐗屽彿
+        String plateNo = dto.getPlateNo();  // 这里获取了车牌号
 
-        // 1锔忊儯 鏍规嵁车牌查询溅杈?        Vehicle vehicle = vehicleMapper.selectByPlateNo(plateNo);
+        // 1. 根据车牌查车辆
+        Vehicle vehicle = vehicleMapper.selectByPlateNo(plateNo);
 
         boolean isOwnerVehicle = vehicle != null;
         ParkingSpaceLease lease = null;
 
         if (isOwnerVehicle) {
-            // 2锔忊儯 鏌ユ槸鍚︽湁有效车位使用中鏉冿紙鍖呮湀 / 固定锛?            lease = leaseMapper.selectActiveLeaseByUser(vehicle.getUserId());
+            // 2. 查是否有有效车位使用权（包月 / 固定）
+            lease = leaseMapper.selectActiveLeaseByUser(vehicle.getUserId());
         }
 
-        // 3锔忊儯 记录鍏ラ椄鏃ュ織
+        // 3. 记录入闸日志
         ParkingGateLog log = new ParkingGateLog();
         log.setUserId(isOwnerVehicle ? vehicle.getUserId() : null);
         log.setSpaceId(lease != null ? lease.getSpaceId() : null);
@@ -63,18 +65,23 @@ public class ParkingGateServiceImpl implements ParkingGateService {
         log.setAction("ENTER");
         log.setResult("SUCCESS");
 
-        // 猸愨瓙猸?鏂板锛氳缃溅鐗屽彿 猸愨瓙猸?        log.setPlateNo(plateNo);  // 杩欓噷蹇呴』璁剧疆锛?        if (!isOwnerVehicle) {
-            log.setRemark("澶栨潵车辆鍏ラ椄");
+        // ⭐⭐ 新增：设置车牌号 ⭐⭐
+        log.setPlateNo(plateNo);  // 这里必须设置！
+        if (!isOwnerVehicle) {
+            log.setRemark("外来车辆入闸");
         } else if (lease != null) {
-            log.setRemark("业主固定车位鍏ラ椄");
+            log.setRemark("业主固定车位入闸");
         } else {
-            log.setRemark("业主临时鍋滆溅鍏ラ椄");
+            log.setRemark("业主临时停车入闸");
         }
 
         log.setCreateTime(LocalDateTime.now());
         gateLogMapper.insert(log);
 
-        // 4锔忊儯 鏄惁鏀捐锛?        // 璇存槑锛?        // - 固定车位 / 鍖呮湀锛氱洿鎺ユ斁琛?        // - 业主涓村仠 / 澶栨潵车辆锛氫篃鍏佽鍏ラ椄锛屽嚭闂告椂绠楅挶
+        // 4. 是否放行？
+        // 说明：
+        // - 固定车位 / 包月：直接放行
+        // - 业主临停 / 外来车辆：也允许入闸，出闸时算钱
     }
 
     @Override
@@ -82,38 +89,40 @@ public class ParkingGateServiceImpl implements ParkingGateService {
     public ParkingGateExitResult exitGate(ParkingGateExitDTO dto) {
         String plateNo = dto.getPlateNo();
 
-        // ==================銆?锔忊儯锛歊edis 鍒嗗竷开始忛攣閰嶇疆銆?=================
-        // Key锛氬悓涓€杈嗚溅锛堝悓涓€车牌锛夊湪鍚屼竴鏃跺埢鍙兘鏈変竴涓嚭闂哥嚎绋?        String lockKey = "lock:parking:exit:" + plateNo;
-        // Value锛氱敤浜庤В销毁佹椂鏍￠獙锛岄槻姝㈣鍒犲埆浜虹殑销毁?        String lockValue = UUID.randomUUID().toString();
+        // ==================【0️⃣：Redis 分布式锁配置】=================
+        // Key：同一辆车（同一车牌）在同一时刻只能有一个出闸线程
+        String lockKey = "lock:parking:exit:" + plateNo;
+        // Value：用于解锁时校验，防止误删别人的锁
+        String lockValue = UUID.randomUUID().toString();
 
-        // ==================銆?锔忊儯锛氬甫閲嶈瘯鐨勫垎甯冨紡销毁佽幏鍙栥€?=================
-        // 閰嶇疆参数锛氶攣10绉掕繃鏈燂紝鏈€澶氶噸璇?娆★紝姣忔筛选夊緟100姣
+        // ==================【1️⃣：带重试的分布式锁获取】=================
+        // 配置参数：锁10秒过期，最多重试3次，每次等待100毫秒
         boolean locked = false;
         try {
             locked = redisLockUtil.tryLockWithRetry(lockKey, lockValue, 10, 3, 100);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("銆愬嚭闂镐腑鏂€戣溅鐗?{} 鑾峰彇销毁佽涓柇", plateNo, e);
-            throw new RuntimeException("系统绻佸繖锛岃绋嶅悗閲嶈瘯");
+            log.error("【出闸中断】车牌 {} 获取锁被中断", plateNo, e);
+            throw new RuntimeException("系统繁忙，请稍后重试");
         }
 
         if (!locked) {
-            // 馃毀 澶氭閲嶈瘯鍚庝粛鏃犳硶鑾峰彇销毁侊紝璇存槑璇ヨ溅杈嗘鍦ㄨ其他璇锋眰澶勭悊
-            log.warn("銆愬嚭闂稿啿绐併€戣溅鐗?{} 澶氭灏濊瘯鑾峰彇销毁佸け璐ワ紝鍙兘琚伓鎰忛噸澶嶈姹?, plateNo);
-            throw new RuntimeException("车辆姝ｅ湪鍑洪椄澶勭悊涓紝璇风◢鍚庨噸璇?);
+            // 🚫 多次重试后仍无法获取锁，说明该车辆正在被其他请求处理
+            log.warn("【出闸冲突】车牌 {} 多次尝试获取锁失败，可能被恶意重复请求", plateNo);
+            throw new RuntimeException("车辆正在出闸处理中，请稍后重试");
         }
 
         try {
-            log.info("銆愬嚭闂稿紑濮嬨€戣溅鐗?{} 成功鑾峰彇鍒嗗竷开始忛攣锛屽紑濮嬪鐞嗗嚭闂搁€昏緫", plateNo);
+            log.info("【出闸开始】车牌 {} 成功获取分布式锁，开始处理出闸逻辑", plateNo);
 
-            // ==================銆?锔忊儯锛氬熀纭€参数鏍￠獙銆?=================
+            // ==================【2️⃣：基础参数校验】=================
             if (!StringUtils.hasText(plateNo)) {
-                throw new RuntimeException("车牌鍙蜂笉鑳戒负绌?);
+                throw new RuntimeException("车牌号不能为空");
             }
 
             LocalDateTime exitTime = LocalDateTime.now();
 
-            // ==================銆?锔忊儯锛氭煡璇㈡渶杩戜竴娆″叆闂歌褰曘€?=================
+            // ==================【3️⃣：查询最近一次入闸记录】=================
             ParkingGateLog enterLog = gateLogMapper.selectOne(
                     Wrappers.<ParkingGateLog>lambdaQuery()
                             .eq(ParkingGateLog::getPlateNo, plateNo)
@@ -123,13 +132,13 @@ public class ParkingGateServiceImpl implements ParkingGateService {
             );
 
             if (enterLog == null) {
-                log.warn("銆愬嚭闂稿け璐ャ€戣溅鐗?{} 鏈壘鍒板叆闂歌褰?, plateNo);
-                throw new RuntimeException("鏈壘鍒板叆闂歌褰曪紝鏃犳硶鍑洪椄");
+                log.warn("【出闸失败】车牌 {} 未找到入闸记录", plateNo);
+                throw new RuntimeException("未找到入闸记录，无法出闸");
             }
 
             LocalDateTime enterTime = enterLog.getCreateTime();
 
-            // ==================銆?锔忊儯锛氬浐瀹氳溅浣嶆牎楠屻€?=================
+            // ==================【4️⃣：固定车位校验】=================
             ParkingSpaceLease lease = null;
             if (enterLog.getUserId() != null) {
                 lease = leaseMapper.selectOne(
@@ -143,9 +152,9 @@ public class ParkingGateServiceImpl implements ParkingGateService {
             boolean isFixedOwner = lease != null &&
                     (lease.getEndTime() == null || lease.getEndTime().isAfter(exitTime));
 
-            // ==================銆?锔忊儯锛氬浐瀹氳溅浣?鈫?鐩存帴鏀捐銆?=================
+            // ==================【5️⃣：固定车位 -> 直接放行】=================
             if (isFixedOwner) {
-                log.info("銆愬浐瀹氳溅浣嶆斁琛屻€戣溅鐗?{} 涓哄浐瀹氳溅浣嶄笟涓伙紝鐩存帴鏀捐", plateNo);
+                log.info("【固定车位放行】车牌 {} 为固定车位业主，直接放行", plateNo);
 
                 ParkingGateLog exitLog = new ParkingGateLog();
                 exitLog.setPlateNo(plateNo);
@@ -154,18 +163,18 @@ public class ParkingGateServiceImpl implements ParkingGateService {
                 exitLog.setGateType("FIXED");
                 exitLog.setAction("EXIT");
                 exitLog.setResult("SUCCESS");
-                exitLog.setRemark("固定车位业主鐩存帴鏀捐");
+                exitLog.setRemark("固定车位业主直接放行");
                 exitLog.setCreateTime(exitTime);
                 gateLogMapper.insert(exitLog);
 
                 ParkingGateExitResult result = new ParkingGateExitResult();
                 result.setAllowPass(true);
                 result.setNeedPay(false);
-                result.setMessage("固定车位业主锛岀洿鎺ユ斁琛?);
+                result.setMessage("固定车位业主，直接放行");
                 return result;
             }
 
-            // ==================銆?锔忊儯锛氭暟鎹簱灞傞槻閲嶅订单锛堢浜岄亾闃茬嚎锛夈€?=================
+            // ==================【6️⃣：数据库层防重复订单（第二道防线）】=================
             ParkingOrder existOrder = parkingOrderMapper.selectOne(
                     Wrappers.<ParkingOrder>lambdaQuery()
                             .eq(ParkingOrder::getPlateNo, plateNo)
@@ -175,7 +184,7 @@ public class ParkingGateServiceImpl implements ParkingGateService {
             );
 
             if (existOrder != null) {
-                log.warn("銆愬嚭闂告嫤鎴€戣溅鐗?{} 瀛樺湪鏈畬鎴愯鍗?orderNo={}",
+                log.warn("【出闸拦截】车牌 {} 存在未完成订单 orderNo={}",
                         plateNo, existOrder.getOrderNo());
 
                 ParkingGateExitResult result = new ParkingGateExitResult();
@@ -183,32 +192,34 @@ public class ParkingGateServiceImpl implements ParkingGateService {
                 result.setNeedPay(true);
                 result.setAmount(existOrder.getAmount());
                 result.setOrderNo(existOrder.getOrderNo());
-                result.setMessage("瀛樺湪鏈畬鎴愯鍗曪紝璇峰厛鏀粯");
+                result.setMessage("存在未完成订单，请先支付");
                 return result;
             }
 
-            // ==================銆?锔忊儯锛氫复鏃惰溅璁¤垂閫昏緫銆?=================
+            // ==================【7️⃣：临时车计费逻辑】=================
             long minutes = Duration.between(enterTime, exitTime).toMinutes();
             long hours = minutes <= 0 ? 1 : (minutes + 59) / 60;
             BigDecimal amount = BigDecimal.valueOf(hours * 10);
 
-            log.info("銆愯璐逛俊鎭€戣溅鐗?{} 鍋滆溅时长 {} 鍒嗛挓锛岃璐?{} 鍏?,
+            log.info("【计费信息】车牌 {} 停车时长 {} 分钟，计费 {} 元",
                     plateNo, minutes, amount);
 
-            // ==================銆?锔忊儯锛氱敓鎴愬敮涓€鍋滆溅订单銆?=================
+            // ==================【8️⃣：生成唯一停车订单】=================
             String orderNo = generateOrderNo();
             ParkingOrder order = new ParkingOrder();
             order.setOrderNo(orderNo);
             order.setPlateNo(plateNo);
             order.setUserId(enterLog.getUserId() == null ? 0L : enterLog.getUserId());
 
-            // 鉁?鍏抽敭淇锛氳缃?spaceId锛堣溅浣岻D锛?            // 浠庡叆闂歌褰曡幏鍙栬溅浣岻D锛屽鏋滃叆闂告椂娌℃湁鍒嗛厤车位锛屽彲浠ヨ缃负0鎴杗ull
+            // ✅ 关键修复：设置 spaceId（车位ID）
+            // 从入闸记录获取车位ID，如果入闸时没有分配车位，可以设置为0或null
             if (enterLog.getSpaceId() != null) {
                 order.setSpaceId(enterLog.getSpaceId());
             } else {
-                // 临时杞﹀彲鑳芥病鏈夊浐瀹氳溅浣嶏紝鏍规嵁鏁版嵁搴撶害鏉熷喅瀹?                // 濡傛灉鏁版嵁搴撲笉鍏佽null锛岃缃负0
+                // 临时车可能没有固定车位，根据数据库约束决定
+                // 如果数据库不允许null，设置为0
                 order.setSpaceId(0L);
-                // 鎴栬€呭鏋滄暟鎹簱鍏佽null锛歰rder.setSpaceId(null);
+                // 或者如果数据库允许null：order.setSpaceId(null);
             }
 
             order.setOrderType("TEMP");
@@ -221,37 +232,37 @@ public class ParkingGateServiceImpl implements ParkingGateService {
 
             parkingOrderMapper.insert(order);
 
-            log.info("銆愯鍗曠敓鎴愩€戣溅鐗?{} 生成鍋滆溅订单 orderNo={}, amount={}",
+            log.info("【订单生成】车牌 {} 生成停车订单 orderNo={}, amount={}",
                     plateNo, orderNo, amount);
 
-            // ==================銆愷煍燂細返回鏀粯淇℃伅锛堜复鏃惰溅涓嶆斁琛岋級銆?=================
+            // ==================【9️⃣：返回支付信息（临时车不放行）】=================
             ParkingGateExitResult result = new ParkingGateExitResult();
             result.setAllowPass(false);
             result.setNeedPay(true);
             result.setAmount(amount);
             result.setOrderNo(orderNo);
-            result.setMessage("璇锋敮浠樺仠杞﹁垂鍚庡嚭闂?);
+            result.setMessage("请支付停车费后出闸");
 
             return result;
 
         } catch (Exception e) {
-            // 记录涓氬姟异常鏃ュ織
-            log.error("銆愬嚭闂稿紓甯搞€戣溅鐗?{} 澶勭悊鍑洪椄閫昏緫鏃跺彂鐢熷紓甯?, plateNo, e);
+            // 记录业务异常日志
+            log.error("【出闸异常】车牌 {} 处理出闸逻辑时发生异常", plateNo, e);
             throw e;
         } finally {
-            // ==================銆愷煍氾細閲婃斁 Redis 销毁併€?=================
+            // ==================【🔟：释放 Redis 锁】=================
             try {
                 redisLockUtil.unlock(lockKey, lockValue);
-                log.debug("銆愰攣閲婃斁銆戣溅鐗?{} 成功閲婃斁鍒嗗竷开始忛攣", plateNo);
+                log.debug("【锁释放】车牌 {} 成功释放分布式锁", plateNo);
             } catch (Exception e) {
-                log.error("銆愰攣閲婃斁异常銆戣溅鐗?{} 閲婃斁鍒嗗竷开始忛攣失败", plateNo, e);
-                // 杩欓噷涓嶆姏鍑哄紓甯革紝閬垮厤鎺╃洊涓氬姟异常
+                log.error("【锁释放异常】车牌 {} 释放分布式锁失败", plateNo, e);
+                // 这里不抛出异常，避免掩盖业务异常
             }
         }
     }
 
     private String generateOrderNo() {
-        // 鏍煎紡锛歅 + 骞存湀鏃ユ椂鍒嗙 + 4浣嶉殢鏈烘暟
+        // 格式：P + 年月日时分秒 + 4位随机数
         String timePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String randomPart = String.format("%04d", new Random().nextInt(10000));
         return "P" + timePart + randomPart;

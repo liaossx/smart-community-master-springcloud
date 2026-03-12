@@ -6,22 +6,21 @@ import lombok.Data;
 @Data
 public class ParkingSpaceQueryDTO {
 
-    @Schema(description = "椤电爜", defaultValue = "1")
+    @Schema(description = "页码", defaultValue = "1")
     private Integer pageNum = 1;
 
-    @Schema(description = "椤靛ぇ灏?, defaultValue = "10")
+    @Schema(description = "页大小", defaultValue = "10")
     private Integer pageSize = 10;
 
-    @Schema(description = "车位缂栧彿")
+    @Schema(description = "车位编号")
     private String spaceNo;
 
-    @Schema(description = "车位状态€?(AVAILABLE/DISABLED)")
+    @Schema(description = "车位状态 (AVAILABLE/DISABLED)")
     private String status;
 
-    @Schema(description = "车牌鍙?)
+    @Schema(description = "车牌号")
     private String plateNo;
 
-    @Schema(description = "社区ID锛堢鐞嗗憳绔寜社区闅旂锛?)
+    @Schema(description = "社区ID（管理员端按社区隔离）")
     private Long communityId;
 }
-

@@ -32,7 +32,8 @@ public class ParkingAccountServiceImpl implements ParkingAccountService {
             return account;
         }
 
-        // 娌℃湁璐︽埛灏卞垱寤?        account = new ParkingAccount();
+        // 没有账户就创建
+        account = new ParkingAccount();
         account.setUserId(userId);
         account.setBalance(BigDecimal.ZERO);
         account.setStatus("NORMAL");
@@ -56,7 +57,7 @@ public class ParkingAccountServiceImpl implements ParkingAccountService {
         log.setAccountId(account.getId());
         log.setAmount(amount);
         log.setType("RECHARGE");
-        log.setRemark("璐︽埛充值?);
+        log.setRemark("账户充值");
         log.setCreateTime(LocalDateTime.now());
         logMapper.insert(log);
     }
@@ -67,7 +68,7 @@ public class ParkingAccountServiceImpl implements ParkingAccountService {
         ParkingAccount account = getOrCreateAccount(userId);
 
         if (account.getBalance().compareTo(amount) < 0) {
-            throw new RuntimeException("余额涓嶈冻");
+            throw new RuntimeException("余额不足");
         }
 
         account.setBalance(account.getBalance().subtract(amount));
@@ -79,7 +80,7 @@ public class ParkingAccountServiceImpl implements ParkingAccountService {
         log.setOrderId(orderId);
         log.setAmount(amount.negate());
         log.setType("CONSUME");
-        log.setRemark("鍋滆溅娑堣垂");
+        log.setRemark("停车消费");
         log.setCreateTime(LocalDateTime.now());
         logMapper.insert(log);
     }

@@ -14,19 +14,19 @@ import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/parking/account")
-@Tag(name = "鍋滆溅璐︽埛接口")
+@Tag(name = "停车账户接口")
 @RequiredArgsConstructor
 public class ParkingAccountController {
 
     private final ParkingAccountService accountService;
-    @Operation(summary = "充值煎仠杞﹁处鎴?)
+    @Operation(summary = "充值停车账户")
     @PostMapping("/recharge")
     public Result<Void> recharge(@RequestBody RechargeDTO dto) {
         Long userId = UserContext.getCurrentUserId();
         accountService.recharge(userId, dto.getAmount());
         return Result.success();
     }
-    @Operation(summary = "查询鍋滆溅璐︽埛余额")
+    @Operation(summary = "查询停车账户余额")
     @GetMapping("/balance")
     public Result<BigDecimal> balance() {
         Long userId = UserContext.getCurrentUserId();

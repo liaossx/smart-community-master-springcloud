@@ -19,7 +19,7 @@ public class ParkingPlateController {
 
     private final ParkingPlateService plateService;
 
-    @Operation(summary = "绑定车牌鍒拌溅浣?)
+    @Operation(summary = "绑定车牌到车位")
     @PostMapping("/bind")
 
     public Result<Void> bindPlate(@RequestBody BindPlateDTO dto) {
@@ -28,7 +28,7 @@ public class ParkingPlateController {
         return Result.success();
     }
 
-    @Operation(summary = "瑙ｇ粦车牌")
+    @Operation(summary = "解绑车牌")
     @PostMapping("/unbind")
     public Result<Void> unbindPlate(@RequestBody BindPlateDTO dto) {
         Long userId = UserContext.getCurrentUserId();
@@ -36,7 +36,7 @@ public class ParkingPlateController {
         return Result.success();
     }
 
-    @Operation(summary = "查询车位绑定鐨勮溅鐗?)
+    @Operation(summary = "查询车位绑定的车牌")
     @GetMapping("/list")
     public Result<List<String>> listPlates(@RequestParam Long spaceId) {
         Long userId = UserContext.getCurrentUserId();

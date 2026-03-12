@@ -46,6 +46,12 @@
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-alibaba-sentinel-gateway</artifactId>
         </dependency>
+        <!-- Knife4j Gateway Starter -->
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-gateway-spring-boot-starter</artifactId>
+            <version>${knife4j.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

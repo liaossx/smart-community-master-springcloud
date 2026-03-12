@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequestMapping("/api/parking/gate")
-@Tag(name = "鍋滆溅-开始€闂?)
+@Tag(name = "停车-开闸")
 public class ParkingGateController {
 
     @Autowired
@@ -27,7 +27,7 @@ public class ParkingGateController {
 
 
     @PostMapping("/enter")
-    @Operation(summary = "车辆鍏ラ椄", description = "所有弿车牌鎴栨壂鐮佸叆闂?)
+    @Operation(summary = "车辆入闸", description = "所有扫描车牌或扫码入闸")
     public Result<Void> enterGate(@RequestBody ParkingGateEnterDTO dto) {
         try {
             parkingGateService.enterGate(dto);
@@ -35,13 +35,13 @@ public class ParkingGateController {
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("车辆鍏ラ椄异常", e);
-            return Result.fail("鍏ラ椄失败锛岃绋嶅悗鍐嶈瘯");
+            log.error("车辆入闸异常", e);
+            return Result.fail("入闸失败，请稍后再试");
         }
     }
 
     @PostMapping("/exit")
-    @Operation(summary = "车辆鍑洪椄")
+    @Operation(summary = "车辆出闸")
     public Result<ParkingGateExitResult> exitGate(
             @RequestBody ParkingGateExitDTO dto) {
 
@@ -49,4 +49,3 @@ public class ParkingGateController {
         return Result.success(result);
     }
 }
-

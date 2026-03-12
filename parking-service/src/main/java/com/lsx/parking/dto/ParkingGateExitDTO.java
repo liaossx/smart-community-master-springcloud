@@ -6,6 +6,6 @@ import lombok.Data;
 @Data
 public class ParkingGateExitDTO {
 
-    @Schema(description = "车牌鍙?, required = true)
+    @Schema(description = "车牌号", required = true)
     private String plateNo;
 }

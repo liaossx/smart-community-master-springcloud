@@ -46,13 +46,13 @@ public class ParkingOrderController {
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("创建鍋滆溅订单异常", e);
-            return Result.fail("创建失败锛岃绋嶅悗鍐嶈瘯");
+            log.error("创建停车订单异常", e);
+            return Result.fail("创建失败，请稍后再试");
         }
     }
 
     @GetMapping("/admin/list")
-    @Operation(summary = "管理员樺垎椤垫煡璇㈠仠杞﹁鍗?, description = "鏀寔鎸夎溅鐗屽彿銆佺姸鎬併€佽鍗曠被鍨嬨€佹椂闂磋寖鍥寸瓫閫?)
+    @Operation(summary = "管理员分页查询停车订单", description = "支持按车牌号、状态、订单类型、时间范围筛选")
     public Result<Map<String, Object>> adminListOrders(@RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
                                                        @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize,
                                                        @RequestParam(value = "plateNo", required = false) String plateNo,
@@ -110,13 +110,13 @@ public class ParkingOrderController {
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("管理员樻煡璇㈠仠杞﹁鍗曞紓甯?, e);
-            return Result.fail("查询失败锛岃绋嶅悗鍐嶈瘯");
+            log.error("管理员查询停车订单异常", e);
+            return Result.fail("查询失败，请稍后再试");
         }
     }
 
     @GetMapping("/my")
-    @Operation(summary = "查询鎴戠殑鍋滆溅订单", description = "鎸夋椂闂村€掑簭")
+    @Operation(summary = "查询我的停车订单", description = "按时间倒序")
     public Result<IPage<ParkingOrderVO>> listMyOrders(@RequestParam("userId") Long userId,
                                                      @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
                                                      @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
@@ -126,25 +126,22 @@ public class ParkingOrderController {
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("查询鍋滆溅订单异常", e);
-            return Result.fail("查询失败锛岃绋嶅悗鍐嶈瘯");
+            log.error("查询停车订单异常", e);
+            return Result.fail("查询失败，请稍后再试");
         }
     }
 
     @PutMapping("/{id}/pay")
-    @Operation(summary = "鏀粯鍋滆溅订单")
+    @Operation(summary = "支付停车订单")
     public Result<Boolean> payOrder(@PathVariable("id") Long orderId, @RequestBody ParkingOrderPayDTO dto) {
         try {
             Boolean success = parkingOrderService.payOrder(orderId, dto);
-            return success ? Result.success(true) : Result.fail("鏀粯失败");
+            return success ? Result.success(true) : Result.fail("支付失败");
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("鏀粯订单异常", e);
-            return Result.fail("鏀粯失败锛岃绋嶅悗鍐嶈瘯");
+            log.error("支付订单异常", e);
+            return Result.fail("支付失败，请稍后再试");
         }
     }
 }
-
-
-

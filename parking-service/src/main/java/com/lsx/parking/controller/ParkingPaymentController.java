@@ -15,14 +15,14 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequestMapping("/api/parking/pay")
-@Tag(name = "鍋滆溅-鏀粯")
+@Tag(name = "停车-支付")
 public class ParkingPaymentController {
 
     @Autowired
     private ParkingPaymentService parkingPaymentService;
 
     @PostMapping("/success")
-    @Operation(summary = "鏀粯成功鍥炶皟锛堟ā鎷燂級")
+    @Operation(summary = "支付成功回调（模拟）")
     public Result<Void> paySuccess(@RequestBody ParkingPaySuccessDTO dto) {
         try {
             parkingPaymentService.paySuccess(dto);
@@ -30,8 +30,8 @@ public class ParkingPaymentController {
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         } catch (Exception e) {
-            log.error("鏀粯鍥炶皟异常", e);
-            return Result.fail("鏀粯澶勭悊失败");
+            log.error("支付回调异常", e);
+            return Result.fail("支付处理失败");
         }
     }
 }

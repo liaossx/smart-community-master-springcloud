@@ -1,37 +1,3 @@
-server:
-  port: 8083
-
-spring:
-  application:
-    name: house-service
-  config:
-    import:
-      - optional:nacos:house-service.yaml?group=DEFAULT_GROUP&refresh=true
-  cloud:
-    nacos:
-      discovery:
-        server-addr: 192.168.10.101:8848
-      config:
-        server-addr: 192.168.10.101:8848
-        file-extension: yaml
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.10.101:3306/smart_community?useUnicode=true&characterEncoding=utf-8&serverTimezone=GMT%2B8&useSSL=false
-    username: root
-    password: 1234
-  redis:
-    host: 192.168.10.101
-    port: 6379
-    password: 1234
-    timeout: 10000
-    database: 0
-    lettuce:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
-        max-wait: 3000ms
-
 mybatis-plus:
   mapper-locations: classpath*:com/lsx/house/mapper/*.xml
   type-aliases-package: com.lsx.house.entity

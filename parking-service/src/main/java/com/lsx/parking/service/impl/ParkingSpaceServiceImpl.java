@@ -62,14 +62,14 @@ public class ParkingSpaceServiceImpl
     public void openSpace(SpaceOpenDTO dto) {
         Assert.notNull(dto.getSpaceId(), "车位ID/记录ID不能为空");
         Assert.notNull(dto.getUserId(), "用户ID不能为空");
-        Assert.notNull(dto.getAmount(), "鏀粯金额不能为空");
-        Assert.notNull(dto.getDurationMonths(), "璐拱时长不能为空");
+        Assert.notNull(dto.getAmount(), "支付金额不能为空");
+        Assert.notNull(dto.getDurationMonths(), "购买时长不能为空");
 
-        // 1. 鏌ユ壘待缴费圭殑绑定记录
-        // 灏濊瘯浣滀负 plateId 查询
+        // 1. 查找待缴费的绑定记录
+        // 尝试作为 plateId 查询
         ParkingSpacePlate plate = plateMapper.selectById(dto.getSpaceId());
         
-        // 濡傛灉鎸塈D娌℃煡鍒帮紝鎴栬€呮煡鍒扮殑记录状态€佷笉瀵?用户涓嶅锛屽皾璇曟寜 spaceId + userId 查询
+        // 如果按ID没查到，或者查到的记录状态不对/用户不对，尝试按 spaceId + userId 查询
         if (plate == null || !plate.getUserId().equals(dto.getUserId())) {
             plate = plateMapper.selectOne(Wrappers.<ParkingSpacePlate>lambdaQuery()
                     .eq(ParkingSpacePlate::getSpaceId, dto.getSpaceId())
@@ -79,21 +79,24 @@ public class ParkingSpaceServiceImpl
         }
         
         if (plate == null) {
-             throw new RuntimeException("鏈壘鍒板緟缴费鐨勭粦瀹氳褰?);
+             throw new RuntimeException("未找到待缴费的绑定记录");
         }
         
         if (!"AWAITING_PAYMENT".equals(plate.getStatus())) {
-             throw new RuntimeException("璇ヨ褰曠姸鎬佷笉鏄緟缴费状态€?);
+             throw new RuntimeException("该记录状态不是待缴费状态");
         }
 
-        // 2. 所有ｉ櫎余额 (biz_parking_account)
-        // 使用中 plateId 浣滀负鍏宠仈订单ID锛堟垨绋嶅悗创建鐨?leaseId锛?        // 杩欓噷鏆傛椂浼?plate.getId()锛屼篃鍙€冭檻浼?0 鎴栧叾浠栨爣璇?        try {
+        // 2. 扣除余额 (biz_parking_account)
+        // 使用 plateId 作为关联订单ID（或稍后创建的 leaseId）
+        // 这里暂时传 plate.getId()，也可考虑传 0 或其他标识
+        try {
             parkingAccountService.consume(dto.getUserId(), dto.getAmount(), plate.getId());
         } catch (Exception e) {
-             throw new RuntimeException("余额涓嶈冻锛岃充值?);
+             throw new RuntimeException("余额不足，请充值");
         }
         
-        // 3. 更新绑定记录状态€?        plate.setStatus("ACTIVE");
+        // 3. 更新绑定记录状态
+        plate.setStatus("ACTIVE");
         plate.setUpdateTime(LocalDateTime.now());
         plateMapper.updateById(plate);
         
@@ -108,11 +111,13 @@ public class ParkingSpaceServiceImpl
             lease = new ParkingSpaceLease();
             lease.setSpaceId(plate.getSpaceId());
             lease.setUserId(dto.getUserId());
-            lease.setLeaseType("MONTHLY"); // 榛樿涓烘湀绉?            lease.setStartTime(now);
+            lease.setLeaseType("MONTHLY"); // 默认为月租
+            lease.setStartTime(now);
             lease.setCreateTime(now);
         }
         
-        // 更新有效鏈?        lease.setStartTime(now);
+        // 更新有效期
+        lease.setStartTime(now);
         lease.setEndTime(now.plusMonths(dto.getDurationMonths()));
         lease.setStatus("ACTIVE");
         lease.setUpdateTime(now);
@@ -123,13 +128,13 @@ public class ParkingSpaceServiceImpl
             leaseMapper.updateById(lease);
         }
 
-        // 5. 鎻掑叆缁熶竴订单记录 (ParkingOrder)
+        // 5. 插入统一订单记录 (ParkingOrder)
         ParkingOrder order = new ParkingOrder();
         order.setOrderNo("PK" + now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + RandomUtil.randomNumbers(4));
         order.setUserId(dto.getUserId());
         order.setSpaceId(plate.getSpaceId());
         order.setPlateNo(plate.getPlateNo());
-        order.setOrderType("MONTHLY"); // 鎴栨牴鎹椂闀垮垽鏂?YEARLY
+        order.setOrderType("MONTHLY"); // 或根据时长判断 YEARLY
         if (dto.getDurationMonths() >= 12) {
              order.setOrderType("YEARLY");
         }
@@ -137,9 +142,9 @@ public class ParkingSpaceServiceImpl
         order.setStatus("PAID");
         order.setPayTime(now);
         order.setPayChannel(dto.getPayMethod());
-        order.setPayRemark("棣栨开始€閫氳溅浣? " + plate.getPlateNo() + ", 时长: " + dto.getDurationMonths() + "涓湀");
+        order.setPayRemark("首次开通车位: " + plate.getPlateNo() + ", 时长: " + dto.getDurationMonths() + "个月");
         
-        // 鑾峰彇社区ID
+        // 获取社区ID
         ParkingSpace space = this.getById(plate.getSpaceId());
         if (space != null) {
             order.setCommunityId(space.getCommunityId());
@@ -152,47 +157,52 @@ public class ParkingSpaceServiceImpl
         
         parkingOrderMapper.insert(order);
 
-        // 6. 璋冪敤道闸系统接口 (妯℃嫙)
-        // log.info("璋冪敤道闸系统下发车牌权限: {}", plate.getPlateNo());
+        // 6. 调用道闸系统接口 (模拟)
+        // log.info("调用道闸系统下发车牌权限: {}", plate.getPlateNo());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void renewSpace(SpaceRenewDTO dto) {
         Assert.notNull(dto.getSpaceId(), "车位ID不能为空");
-        Assert.notNull(dto.getDurationMonths(), "缁垂时长不能为空");
-        Assert.notNull(dto.getAmount(), "鏀粯金额不能为空");
+        Assert.notNull(dto.getDurationMonths(), "续费时长不能为空");
+        Assert.notNull(dto.getAmount(), "支付金额不能为空");
         Assert.notNull(dto.getUserId(), "用户ID不能为空");
 
-        // 1. 鏍￠獙车位鍜岀璧佸叧绯?        ParkingSpaceLease lease = leaseMapper.selectOne(Wrappers.<ParkingSpaceLease>lambdaQuery()
+        // 1. 校验车位和租赁关系
+        ParkingSpaceLease lease = leaseMapper.selectOne(Wrappers.<ParkingSpaceLease>lambdaQuery()
                 .eq(ParkingSpaceLease::getSpaceId, dto.getSpaceId())
                 .eq(ParkingSpaceLease::getUserId, dto.getUserId())
                 .last("limit 1"));
 
         if (lease == null) {
-            // 濡傛灉鏄娆＄璧侊紙娌℃湁鍘嗗彶记录锛夛紝鍙兘闇€瑕佹柊寤?Lease
-            // 杩欓噷鍋囪蹇呴』鍏堟湁租赁记录锛堝嵆浣胯繃鏈熺殑锛夋墠鑳界画璐?            // 濡傛灉瑕佹敮鎸佹柊璐紝閫昏緫浼氫笉鍚?             throw new RuntimeException("鏈壘鍒拌车位鐨勭璧佽褰曪紝璇疯仈绯荤鐞嗗憳开始€閫?);
+            // 如果是首次租赁（没有历史记录），可能需要新建 Lease
+            // 这里假设必须先有租赁记录（即使过期的）才能续费
+            // 如果要支持新购，逻辑会不同
+             throw new RuntimeException("未找到该车位的租赁记录，请联系管理员开通");
         }
 
-        // 2. 所有ｉ櫎余额 (biz_parking_account)
-        // 使用中 lease.getId() 浣滀负鍏宠仈ID
+        // 2. 扣除余额 (biz_parking_account)
+        // 使用 lease.getId() 作为关联ID
         try {
             parkingAccountService.consume(dto.getUserId(), dto.getAmount(), lease.getId());
         } catch (Exception e) {
-             throw new RuntimeException("余额涓嶈冻锛岃充值?);
+             throw new RuntimeException("余额不足，请充值");
         }
 
         // 3. 更新租赁时间
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime newEndTime;
         
-        // 鑾峰彇褰撳墠结束时间锛屽鏋滀负 null 鍒欒涓哄凡杩囨湡
+        // 获取当前结束时间，如果为 null 则视为已过期
         LocalDateTime currentEndTime = lease.getEndTime();
         
         if (currentEndTime == null || currentEndTime.isBefore(now)) {
-            // 已过期熸垨鏃犳埅姝㈡椂闂达紝浠庣幇鍦ㄥ紑濮嬭绠?            lease.setStartTime(now); // 閲嶆柊婵€娲?            newEndTime = now.plusMonths(dto.getDurationMonths());
+            // 已过期或无截止时间，从现在开始计算
+            lease.setStartTime(now); // 重新激活
+            newEndTime = now.plusMonths(dto.getDurationMonths());
         } else {
-            // 鏈繃鏈燂紝缁湪鍚庨潰
+            // 未过期，续在后面
             newEndTime = currentEndTime.plusMonths(dto.getDurationMonths());
         }
         
@@ -202,10 +212,10 @@ public class ParkingSpaceServiceImpl
         
         leaseMapper.updateById(lease);
         
-        // 4. 鍚屾更新车位状态€侊紙濡傛灉涔嬪墠鏄?DISABLED 鎴栧叾浠栫姸鎬侊級
+        // 4. 同步更新车位状态（如果之前是 DISABLED 或其他状态）
         ParkingSpace space = this.getById(dto.getSpaceId());
         if (space != null) {
-            // 固定车位琚璧佸悗锛岄€氬父状态€佽涓?DISABLED (鍗犵敤)
+            // 固定车位被租赁后，通常状态设为 DISABLED (占用)
             if (!"DISABLED".equals(space.getStatus())) {
                 space.setStatus("DISABLED");
                 space.setUpdateTime(now);
@@ -213,13 +223,14 @@ public class ParkingSpaceServiceImpl
             }
         }
         
-        // 5. 鎻掑叆缁熶竴订单记录 (ParkingOrder)
+        // 5. 插入统一订单记录 (ParkingOrder)
         ParkingOrder order = new ParkingOrder();
         order.setOrderNo("PK" + now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + RandomUtil.randomNumbers(4));
         order.setUserId(dto.getUserId());
         order.setSpaceId(dto.getSpaceId());
         
-        // 灏濊瘯鑾峰彇车牌鍙?        String plateNo = "";
+        // 尝试获取车牌号
+        String plateNo = "";
         ParkingSpacePlate plate = plateMapper.selectOne(Wrappers.<ParkingSpacePlate>lambdaQuery()
                 .eq(ParkingSpacePlate::getSpaceId, dto.getSpaceId())
                 .eq(ParkingSpacePlate::getUserId, dto.getUserId())
@@ -229,24 +240,27 @@ public class ParkingSpaceServiceImpl
         }
         order.setPlateNo(plateNo);
         
-        order.setOrderType("MONTHLY"); // 鎴栨牴鎹椂闀垮垽鏂?YEARLY
+        order.setOrderType("MONTHLY"); // 或根据时长判断 YEARLY
         if (dto.getDurationMonths() >= 12) {
              order.setOrderType("YEARLY");
         }
         order.setAmount(dto.getAmount());
         order.setStatus("PAID");
         order.setPayTime(now);
-        order.setPayChannel("BALANCE"); // 缁垂閫氬父涔熸槸余额
-        order.setPayRemark("车位缁垂: " + plateNo + ", 时长: " + dto.getDurationMonths() + "涓湀");
+        order.setPayChannel("BALANCE"); // 续费通常也是余额
+        order.setPayRemark("车位续费: " + plateNo + ", 时长: " + dto.getDurationMonths() + "个月");
         
         if (space != null) {
             order.setCommunityId(space.getCommunityId());
         }
         
-        // 缁垂鐨勮捣濮嬫椂闂村簲璇ユ槸涔嬪墠鐨勭粨鏉熸椂闂达紵鎴栬€呮槸鐜板湪锛?        // 杩欓噷绠€鍗曞鐞嗕负鏈缴费瑕嗙洊鐨勬椂闂存
-        // 娉ㄦ剰锛歳enewSpace 鏂规硶涓凡缁忚绠椾簡 newEnd锛屼絾杩欓噷鎴戜滑鏃犳硶鐩存帴鑾峰彇涔嬪墠鐨?end
-        // 涓轰簡绠€鍖栵紝startTime 璁句负 now (濡傛灉涓嶄弗璋?锛屾垨鑰呰涓?lease.getStartTime() (涔熶笉瀵?
-        // 姣旇緝涓ヨ皑鐨勬槸锛氬鏋滄槸缁湡锛宻tartTime 搴旇鏄?涔嬪墠鐨?endTime銆?        // 浣嗙敱浜?newEndTime 宸茬粡更新鍒?lease 瀵硅薄閲屼簡锛屾垜浠棤娉曡交鏄撳緱鐭モ€滆繖涓€绗斺€濆鍔犵殑时间娈?        // 鏆備笖灏?startTime 璁句负 now锛宔ndTime 璁句负 newEndTime
+        // 续费的起始时间应该是之前的结束时间？或者是现在？
+        // 这里简单处理为本次缴费覆盖的时间段
+        // 注意：renewSpace 方法中已经计算了 newEnd，但这里我们无法直接获取之前的 end
+        // 为了简化，startTime 设为 now (如果不严谨)，或者设为 lease.getStartTime() (也不对)
+        // 比较严谨的是：如果是续期，startTime 应该是之前的 endTime。
+        // 但由于 newEndTime 已经更新到 lease 对象里了，我们无法轻易得知“这一笔”增加的时间段
+        // 暂且将 startTime 设为 now，endTime 设为 newEndTime
         order.setStartTime(now); 
         order.setEndTime(newEndTime);
         order.setCreateTime(now);
@@ -307,7 +321,8 @@ public class ParkingSpaceServiceImpl
     }
 
     /**
-     * 绑定固定车位锛堝彧鍋氣€滃崰浣嶁€濓紝涓嶄骇鐢熶娇鐢ㄦ潈锛?     */
+     * 绑定固定车位（只做“占位”，不产生使用权）
+     */
     @Override
     public Boolean bindSpace(ParkingSpaceBindDTO dto) {
 
@@ -315,28 +330,30 @@ public class ParkingSpaceServiceImpl
 
         ParkingSpace space = this.getById(dto.getSpaceId());
         if (space == null) {
-            throw new RuntimeException("车位不存在?);
+            throw new RuntimeException("车位不存在");
         }
         if (!SPACE_AVAILABLE.equals(space.getStatus())) {
-            throw new RuntimeException("车位涓嶅彲绑定");
+            throw new RuntimeException("车位不可绑定");
         }
         if (!SPACE_FIXED.equals(space.getSpaceType())) {
-            throw new RuntimeException("浠呭浐瀹氳溅浣嶅彲绑定");
+            throw new RuntimeException("仅固定车位可绑定");
         }
 
-        // 浠呮敼鍙樿溅浣嶇姸鎬?        space.setStatus("DISABLED");
+        // 仅改变车位状态
+        space.setStatus("DISABLED");
         space.setUpdateTime(LocalDateTime.now());
 
         return this.updateById(space);
     }
 
     /**
-     * 查询鎴戞嫢鏈夌殑车位锛堝熀浜庝娇鐢ㄦ潈锛?     */
+     * 查询我拥有的车位（基于使用权）
+     */
     @Override
     public List<ParkingSpaceVO> listMySpaces(Long userId) {
         Assert.notNull(userId, "用户ID不能为空");
 
-        // 查询用户鐩稿叧鐨勮溅杈嗙粦瀹氳褰?(PENDING, AWAITING_PAYMENT, ACTIVE)
+        // 查询用户相关的车辆绑定记录 (PENDING, AWAITING_PAYMENT, ACTIVE)
         List<ParkingSpacePlate> plates = plateMapper.selectList(
                 Wrappers.<ParkingSpacePlate>lambdaQuery()
                         .eq(ParkingSpacePlate::getUserId, userId)
@@ -357,9 +374,10 @@ public class ParkingSpaceServiceImpl
             vo.setCommunityName(space.getCommunityName());
             vo.setPlateNo(plate.getPlateNo());
 
-            // 状态€佸垽鏂?            String plateStatus = plate.getStatus();
+            // 状态判断
+            String plateStatus = plate.getStatus();
             
-            // 灏濊瘯鏌ユ壘 Lease 淇℃伅
+            // 尝试查找 Lease 信息
             ParkingSpaceLease lease = leaseMapper.selectOne(Wrappers.<ParkingSpaceLease>lambdaQuery()
                     .eq(ParkingSpaceLease::getSpaceId, plate.getSpaceId())
                     .eq(ParkingSpaceLease::getUserId, userId)
@@ -370,31 +388,33 @@ public class ParkingSpaceServiceImpl
                 vo.setLeaseStartTime(lease.getStartTime());
                 vo.setLeaseEndTime(lease.getEndTime());
                 
-                // 濡傛灉鏄?ACTIVE 状态€侊紝杩涗竴姝ユ鏌ユ椂闂存槸鍚﹁繃鏈?                if ("ACTIVE".equals(plateStatus)) {
+                // 如果是 ACTIVE 状态，进一步检查时间是否过期
+                if ("ACTIVE".equals(plateStatus)) {
                     boolean isLeaseActive = lease.getEndTime() != null && lease.getEndTime().isAfter(now);
                     vo.setLeaseStatus(isLeaseActive ? "ACTIVE" : "EXPIRED");
                     vo.setActive(isLeaseActive);
-                    vo.setStatusText(isLeaseActive ? "使用中? : "已过期?);
+                    vo.setStatusText(isLeaseActive ? "使用中" : "已过期");
                 } else {
-                    // 闈?ACTIVE 状态€佺洿鎺ヤ娇鐢?Plate 状态€?                    vo.setLeaseStatus(plateStatus);
+                    // 非 ACTIVE 状态直接使用 Plate 状态
+                    vo.setLeaseStatus(plateStatus);
                     vo.setActive(false);
-                    if ("PENDING".equals(plateStatus)) vo.setStatusText("瀹℃牳涓?);
-                    else if ("AWAITING_PAYMENT".equals(plateStatus)) vo.setStatusText("待缴费?);
+                    if ("PENDING".equals(plateStatus)) vo.setStatusText("审核中");
+                    else if ("AWAITING_PAYMENT".equals(plateStatus)) vo.setStatusText("待缴费");
                 }
             } else {
-                // 鏃?Lease 记录
+                // 无 Lease 记录
                 vo.setLeaseStatus(plateStatus);
                 vo.setActive(false);
-                if ("PENDING".equals(plateStatus)) vo.setStatusText("瀹℃牳涓?);
-                else if ("AWAITING_PAYMENT".equals(plateStatus)) vo.setStatusText("待缴费?);
-                else if ("ACTIVE".equals(plateStatus)) vo.setStatusText("使用中?鏃犵璧佽褰?");
+                if ("PENDING".equals(plateStatus)) vo.setStatusText("审核中");
+                else if ("AWAITING_PAYMENT".equals(plateStatus)) vo.setStatusText("待缴费");
+                else if ("ACTIVE".equals(plateStatus)) vo.setStatusText("使用中(无租赁记录)");
             }
 
             return vo;
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
     /**
-     * 固定车位授权璁垮
+     * 固定车位授权访客
      */
     @Override
     public Boolean authorizeSpace(Long spaceId, ParkingAuthorizeDTO dto) {
@@ -402,7 +422,7 @@ public class ParkingSpaceServiceImpl
         Assert.notNull(spaceId, "车位ID不能为空");
         Assert.notNull(dto.getUserId(), "用户ID不能为空");
 
-        // 鏍￠獙鏄惁鏈夋湁鏁堜娇鐢ㄦ潈
+        // 校验是否有有效使用权
         ParkingSpaceLease lease = leaseMapper.selectOne(
                 Wrappers.<ParkingSpaceLease>lambdaQuery()
                         .eq(ParkingSpaceLease::getSpaceId, spaceId)
@@ -412,7 +432,7 @@ public class ParkingSpaceServiceImpl
         );
 
         if (lease == null) {
-            throw new RuntimeException("鏃犺车位鐨勬湁鏁堜娇鐢ㄦ潈");
+            throw new RuntimeException("无该车位的有效使用权");
         }
 
         ParkingAuthorize authorize = new ParkingAuthorize();
@@ -432,7 +452,7 @@ public class ParkingSpaceServiceImpl
     }
 
     /**
-     * 查询鎴戠殑授权记录
+     * 查询我的授权记录
      */
     @Override
     public IPage<ParkingAuthorizeVO> listMyAuthorizes(
@@ -472,9 +492,11 @@ public class ParkingSpaceServiceImpl
 
         if (!"super_admin".equalsIgnoreCase(role)) {
             if (currentCommunityId == null) {
-                // 鏃犵ぞ鍖哄垯鏌ヤ笉鍒颁换浣曟暟鎹?                dto.setCommunityId(-1L);
+                // 无社区则查不到任何数据
+                dto.setCommunityId(-1L);
             } else {
-                // 开始哄埗闄愬畾涓哄綋鍓嶇ぞ鍖?                dto.setCommunityId(currentCommunityId);
+                // 强制限定为当前社区
+                dto.setCommunityId(currentCommunityId);
             }
         }
         Page<ParkingSpaceVO> page = new Page<>(dto.getPageNum(), dto.getPageSize());
@@ -503,5 +525,3 @@ public class ParkingSpaceServiceImpl
         });
     }
 }
-
-
