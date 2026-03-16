@@ -97,7 +97,7 @@ public class FeeController {
     }
 
 
-    @PostMapping("/generate")
+    @PostMapping({"/generate", "/admin/generate"})
     @Operation(summary = "生成账单(管理员)", description = "管理员手动触发生成指定周期的物业费账单")
     @Log(title = "生成账单", businessType = BusinessType.INSERT)
     public Result<Boolean> generateBills(
@@ -144,7 +144,7 @@ public class FeeController {
         }
     }
 
-    @GetMapping("/list")
+    @GetMapping({"/list", "/admin/list"})
     @Operation(summary = "管理员查询账单列表", description = "管理员查询所有账单")
     public Result<Page<FeeDTO>> adminList(@RequestParam(value = "status", required = false) String status,
                                           @RequestParam(value = "ownerName", required = false) String ownerName,
@@ -170,7 +170,7 @@ public class FeeController {
         }
     }
 
-    @PostMapping("/remind/batch")
+    @PostMapping({"/remind/batch", "/admin/remind/batch"})
     @Operation(summary = "批量催缴", description = "管理员批量发送催缴通知")
     @Log(title = "批量催缴", businessType = BusinessType.UPDATE)
     public Result<String> remindBatch(@RequestBody Map<String, List<Long>> params) {
@@ -182,7 +182,7 @@ public class FeeController {
         return success ? Result.success("催缴通知发送成功") : Result.fail("催缴通知发送失败");
     }
 
-    @PostMapping("/remind/{id}")
+    @PostMapping({"/remind/{id}", "/admin/remind/{id}"})
     @Operation(summary = "单个催缴", description = "管理员对单个账单发送催缴通知")
     public Result<String> remindSingle(@PathVariable("id") Long id) {
         boolean success = feeService.remind(Collections.singletonList(id));

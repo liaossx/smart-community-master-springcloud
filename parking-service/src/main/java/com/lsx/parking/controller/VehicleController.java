@@ -19,14 +19,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
-@RequestMapping("/api/vehicle")
+@RequestMapping({"/api/vehicle", "/api/parking/vehicle"})
 @Tag(name = "车辆管理员")
 public class VehicleController {
 
     @Autowired
     private VehicleService vehicleService;
 
-    @PostMapping("/bind")
+    @PostMapping({"/bind", "/admin/bind"})
     @Operation(summary = "绑定车辆")
     public Result<Void> bindVehicle(@RequestBody VehicleBindDTO dto) {
         Long userId = dto.getUserId();
@@ -47,7 +47,7 @@ public class VehicleController {
         }
     }
 
-    @GetMapping("/audit/list")
+    @GetMapping({"/audit/list", "/admin/audit/list"})
     @Operation(summary = "查询车辆审核列表")
     public Result<IPage<ParkingCarAuditVO>> listAudit(
             @RequestParam(required = false) String status,
@@ -58,7 +58,7 @@ public class VehicleController {
         return Result.success(page);
     }
 
-    @PostMapping("/audit")
+    @PostMapping({"/audit", "/admin/audit"})
     @Operation(summary = "审核车辆绑定申请")
     public Result<Void> auditCar(@RequestBody ParkingCarAuditDTO dto) {
         try {

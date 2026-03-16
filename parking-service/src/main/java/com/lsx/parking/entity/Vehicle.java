@@ -1,6 +1,7 @@
 package com.lsx.parking.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -21,6 +22,8 @@ public class Vehicle {
     private Long userId;
 
     private String brand;  // 品牌
+
+    @TableField(exist = false)
     private String color;  // 颜色
 
     /** ACTIVE / DISABLED */

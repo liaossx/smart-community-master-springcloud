@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
-@FeignClient(name = "house-service", path = "/api/house")
+@FeignClient(name = "house-service", path = "/api/house", fallbackFactory = com.lsx.system.client.fallback.HouseServiceClientFallbackFactory.class)
 public interface HouseServiceClient {
 
     @GetMapping("/{id}")

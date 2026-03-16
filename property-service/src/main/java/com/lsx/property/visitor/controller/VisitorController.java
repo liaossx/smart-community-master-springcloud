@@ -42,7 +42,7 @@ public class VisitorController {
     }
 
 
-    @GetMapping("/list")
+    @GetMapping({"/list", "/admin/list"})
     @Operation(summary = "管理员查询列表")
     public Result<IPage<VisitorDTO>> adminList(@RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
                                                @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize,
@@ -59,7 +59,7 @@ public class VisitorController {
         }
     }
 
-    @PutMapping("/audit")
+    @PutMapping({"/audit", "/admin/audit"})
     @Operation(summary = "审核访客")
     @Log(title = "访客管理", businessType = BusinessType.UPDATE)
     public Result<Boolean> audit(@RequestParam("id") Long id,

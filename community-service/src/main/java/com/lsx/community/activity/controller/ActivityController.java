@@ -45,7 +45,7 @@ public class ActivityController {
         return ok ? Result.success(true) : Result.fail("报名失败");
     }
 
-    @PostMapping("/publish")
+    @PostMapping({"/publish", "/admin/publish"})
     @Operation(summary = "发布活动")
     @Log(title = "活动管理", businessType = BusinessType.INSERT)
     public Result<Long> publish(@RequestBody SysActivity body) {
@@ -53,7 +53,7 @@ public class ActivityController {
         return Result.success(id);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping({"/{id}", "/admin/{id}"})
     @Operation(summary = "删除活动")
     @Log(title = "活动管理", businessType = BusinessType.DELETE)
     public Result<Boolean> delete(@PathVariable("id") Long id) {
@@ -61,7 +61,7 @@ public class ActivityController {
         return ok ? Result.success(true) : Result.fail("删除失败");
     }
 
-    @GetMapping("/signup/list")
+    @GetMapping({"/signup/list", "/admin/signup/list"})
     @Operation(summary = "活动报名列表")
     public Result<IPage<SignupRecordDTO>> signupList(
             @RequestParam("activityId") Long activityId,
@@ -71,7 +71,7 @@ public class ActivityController {
         return Result.success(page);
     }
 
-    @PutMapping
+    @PutMapping({"", "/admin"})
     @Operation(summary = "修改活动")
     @Log(title = "活动管理", businessType = BusinessType.UPDATE)
     public Result<Boolean> update(@RequestBody SysActivity activity) {

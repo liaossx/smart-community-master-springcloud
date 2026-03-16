@@ -16,6 +16,7 @@
         <module>house-service</module>
         <module>parking-service</module>
         <module>property-service</module>
+        <module>workorder-service</module>
         <module>community-service</module>
         <module>system-service</module>
     </modules>
@@ -121,6 +122,13 @@
                 <groupId>org.springframework.security</groupId>
                 <artifactId>spring-security-core</artifactId>
                 <version>5.7.10</version>
+            </dependency>
+
+            <!-- RabbitMQ -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-amqp</artifactId>
+                <version>${spring-boot.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

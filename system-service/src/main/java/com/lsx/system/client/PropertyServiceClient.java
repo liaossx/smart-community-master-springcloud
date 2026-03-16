@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.Map;
 import java.util.List;
 
-@FeignClient(name = "property-service", path = "/api")
+@FeignClient(name = "property-service", path = "/api", fallbackFactory = com.lsx.system.client.fallback.PropertyServiceClientFallbackFactory.class)
 public interface PropertyServiceClient {
 
     @GetMapping("/complaint/stats")

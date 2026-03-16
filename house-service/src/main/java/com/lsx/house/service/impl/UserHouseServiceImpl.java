@@ -27,8 +27,9 @@ public class UserHouseServiceImpl extends ServiceImpl<UserHouseMapper, UserHouse
             return Collections.emptyList();
         }
 
-        LambdaQueryWrapper<UserHouse> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserHouse::getUserId, userId);
+        LambdaQueryWrapper<UserHouse> wrapper = new LambdaQueryWrapper<UserHouse>()
+                .select(UserHouse::getHouseId)
+                .eq(UserHouse::getUserId, userId);
         
         List<UserHouse> userHouses = userHouseMapper.selectList(wrapper);
         if (userHouses.isEmpty()) {
@@ -37,6 +38,7 @@ public class UserHouseServiceImpl extends ServiceImpl<UserHouseMapper, UserHouse
         
         List<Long> houseIds = userHouses.stream()
                 .map(UserHouse::getHouseId)
+                .distinct()
                 .collect(Collectors.toList());
                 
         if (houseIds.isEmpty()) {

@@ -23,6 +23,9 @@ import com.lsx.parking.vo.ParkingAuthorizeVO;
 import com.lsx.parking.vo.ParkingSpaceRemainVO;
 import com.lsx.parking.vo.ParkingSpaceVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -59,6 +62,10 @@ public class ParkingSpaceServiceImpl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "parkingRemain", allEntries = true),
+        @CacheEvict(cacheNames = "mySpaces", key = "#dto.userId")
+    })
     public void openSpace(SpaceOpenDTO dto) {
         Assert.notNull(dto.getSpaceId(), "车位ID/记录ID不能为空");
         Assert.notNull(dto.getUserId(), "用户ID不能为空");
@@ -99,6 +106,13 @@ public class ParkingSpaceServiceImpl
         plate.setStatus("ACTIVE");
         plate.setUpdateTime(LocalDateTime.now());
         plateMapper.updateById(plate);
+
+        ParkingSpace spaceAfterPay = this.getById(plate.getSpaceId());
+        if (spaceAfterPay != null) {
+            spaceAfterPay.setStatus("OCCUPIED");
+            spaceAfterPay.setUpdateTime(LocalDateTime.now());
+            this.updateById(spaceAfterPay);
+        }
         
         // 4. 更新/创建租赁记录
         ParkingSpaceLease lease = leaseMapper.selectOne(Wrappers.<ParkingSpaceLease>lambdaQuery()
@@ -163,6 +177,7 @@ public class ParkingSpaceServiceImpl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "mySpaces", key = "#dto.userId")
     public void renewSpace(SpaceRenewDTO dto) {
         Assert.notNull(dto.getSpaceId(), "车位ID不能为空");
         Assert.notNull(dto.getDurationMonths(), "续费时长不能为空");
@@ -290,6 +305,7 @@ public class ParkingSpaceServiceImpl
      * 查询剩余车位
      */
     @Override
+    @Cacheable(cacheNames = "parkingRemain", key = "#communityId != null ? #communityId : 'all'")
     public ParkingSpaceRemainVO getRemaining(Long communityId) {
 
         long tempRemain = this.count(Wrappers.<ParkingSpace>lambdaQuery()
@@ -324,6 +340,7 @@ public class ParkingSpaceServiceImpl
      * 绑定固定车位（只做“占位”，不产生使用权）
      */
     @Override
+    @CacheEvict(cacheNames = "parkingRemain", allEntries = true)
     public Boolean bindSpace(ParkingSpaceBindDTO dto) {
 
         Assert.notNull(dto.getSpaceId(), "车位ID不能为空");
@@ -350,6 +367,7 @@ public class ParkingSpaceServiceImpl
      * 查询我拥有的车位（基于使用权）
      */
     @Override
+    @Cacheable(cacheNames = "mySpaces", key = "#userId")
     public List<ParkingSpaceVO> listMySpaces(Long userId) {
         Assert.notNull(userId, "用户ID不能为空");
 

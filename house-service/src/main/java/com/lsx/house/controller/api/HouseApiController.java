@@ -29,16 +29,24 @@ public class HouseApiController {
 
     @GetMapping("/user/{userId}")
     public List<House> getHousesByUserId(@PathVariable("userId") Long userId) {
-        List<UserHouse> userHouses = userHouseMapper.selectList(
-                new LambdaQueryWrapper<UserHouse>().eq(UserHouse::getUserId, userId)
-        );
+        LambdaQueryWrapper<UserHouse> userHouseQuery = new LambdaQueryWrapper<UserHouse>()
+                .select(UserHouse::getHouseId)
+                .eq(UserHouse::getUserId, userId);
+        List<UserHouse> userHouses = userHouseMapper.selectList(userHouseQuery);
         
         if (userHouses.isEmpty()) {
             return new ArrayList<>();
         }
         
-        List<Long> houseIds = userHouses.stream().map(UserHouse::getHouseId).collect(Collectors.toList());
-        return houseMapper.selectBatchIds(houseIds);
+        List<Long> houseIds = userHouses.stream()
+                .map(UserHouse::getHouseId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        LambdaQueryWrapper<House> houseQuery = new LambdaQueryWrapper<House>()
+                .in(House::getId, houseIds)
+                .select(House::getId, House::getCommunityId, House::getCommunityName, House::getBuildingNo, House::getHouseNo);
+        return houseMapper.selectList(houseQuery);
     }
     
     @GetMapping("/{id}")
@@ -87,7 +95,7 @@ public class HouseApiController {
         }
 
         //插入数据
-        if (userHouseMapper.insert(userId, houseId) <= 0) {
+        if (userHouseMapper.insertUserHouseBind(userId, houseId) <= 0) {
             return false;
         }
 

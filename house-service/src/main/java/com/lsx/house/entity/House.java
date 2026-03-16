@@ -20,6 +20,7 @@ public class House {
     private Double area;
     private String type; // 户型
     private Integer bindStatus; // 0-未绑定 1-已绑定
+    private Integer isDefault; // 是否默认房屋：1（是）、0（否）
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

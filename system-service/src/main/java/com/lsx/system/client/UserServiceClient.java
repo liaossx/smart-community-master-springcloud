@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "user-service", path = "/api/user")
+@FeignClient(name = "user-service", path = "/api/user", fallbackFactory = com.lsx.system.client.fallback.UserServiceClientFallbackFactory.class)
 public interface UserServiceClient {
 
     @GetMapping("/inner/{id}")

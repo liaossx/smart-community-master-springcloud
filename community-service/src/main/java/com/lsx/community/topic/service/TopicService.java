@@ -13,7 +13,7 @@ import java.util.List;
 
 public interface TopicService extends IService<Topic> {
     Long createTopic(TopicCreateDTO dto, Long userId);
-    Page<TopicVO> listTopics(Long communityId, Long userId, Integer pageNum, Integer pageSize);
+    Page<TopicVO> listTopics(Long communityId, Long userId, String status, Integer pageNum, Integer pageSize);
     TopicVO getTopicDetail(Long topicId, Long userId);
     Boolean likeTopic(Long topicId, Long userId);
     Long commentTopic(TopicCommentDTO dto, Long userId);

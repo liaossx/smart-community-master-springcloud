@@ -17,6 +17,8 @@ import com.lsx.user.entity.User;
 import com.lsx.user.mapper.UserMapper;
 import com.lsx.user.service.UserService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,6 +68,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return new LoginResult(user, token);
     }
     @Override
+    @CacheEvict(cacheNames = "userList", allEntries = true)
     public RegisterResult  register(RegisterDto registerDto) {
         // 自动转换 superadmin -> super_admin 以匹配系统权限标识
         if ("superadmin".equalsIgnoreCase(registerDto.getRole())) {
@@ -108,6 +111,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     //绑定用户于房屋
     @Transactional(rollbackFor = Exception.class)
     @Override
+    @CacheEvict(cacheNames = "userDetail", key = "#userId")
     public void bindUserToHouse(Long userId,Long houseId){
         //非空校验
         if (userId == null){
@@ -129,6 +133,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    @Cacheable(cacheNames = "userList", key = "#pageNum + '-' + #pageSize + '-' + #keyword + '-' + #role")
     public Page<UserDTO> getUserList(Integer pageNum, Integer pageSize, String keyword, String role) {
         Page<User> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
@@ -183,6 +188,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    @Cacheable(cacheNames = "userDetail", key = "#userId")
     public UserDetailDTO getUserDetail(Long userId) {
         User user = baseMapper.selectById(userId);
         if (user == null) {
@@ -246,6 +252,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"userDetail", "userList"}, key = "#dto.userId", allEntries = true)
     public void adminUpdateUser(AdminUpdateUserDTO dto) {
         User user = baseMapper.selectById(dto.getUserId());
         if (user == null) {
@@ -278,6 +285,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    @CacheEvict(cacheNames = {"userDetail", "userList"}, key = "#userId", allEntries = true)
     public void updateStatus(Long userId, Integer status) {
         User user = baseMapper.selectById(userId);
         if (user == null) {
@@ -300,6 +308,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    @CacheEvict(cacheNames = {"userDetail", "userList"}, key = "#userId", allEntries = true)
     public void resetPassword(Long userId, String newPassword) {
         User user = baseMapper.selectById(userId);
         if (user == null) {

@@ -3,6 +3,7 @@ package com.lsx.core.common.aspect;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lsx.core.common.Util.UserContext;
 import com.lsx.core.common.annotation.Log;
+import com.lsx.core.common.constant.MqConstants;
 import com.lsx.core.common.dto.SysOperLogDTO;
 import com.lsx.core.common.event.OperationLogEvent;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,8 @@ import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -26,6 +29,9 @@ public class LogAspect {
 
     @Resource
     private ApplicationEventPublisher eventPublisher;
+
+    @Autowired(required = false)
+    private RabbitTemplate rabbitTemplate;
 
     @Resource
     private ObjectMapper objectMapper;
@@ -84,7 +90,17 @@ public class LogAspect {
             // 设置操作时间
             operLog.setOperTime(LocalDateTime.now());
             
-            // 发布事件，由具体的业务服务（如 core-service）监听并保存
+            // 优先尝试通过 RabbitMQ 发送异步日志
+            if (rabbitTemplate != null) {
+                try {
+                    rabbitTemplate.convertAndSend(MqConstants.OPER_LOG_EXCHANGE, MqConstants.OPER_LOG_ROUTING_KEY, operLog);
+                    return; // 发送成功则不再发布本地事件
+                } catch (Exception mqEx) {
+                    log.warn("通过 RabbitMQ 发送日志失败，将降级为本地事件: {}", mqEx.getMessage());
+                }
+            }
+            
+            // 降级：发布本地事件，由当前服务内部监听处理
             eventPublisher.publishEvent(new OperationLogEvent(this, operLog));
         } catch (Exception exp) {
             // 记录本地异常日志

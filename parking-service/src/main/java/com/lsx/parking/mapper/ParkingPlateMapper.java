@@ -21,7 +21,7 @@ public interface ParkingPlateMapper extends BaseMapper<ParkingSpacePlate> {
     int insert(ParkingSpacePlate plate);
 
     // 更新
-    @Update("UPDATE biz_parking_space_plate SET status = #{status}, update_time = #{updateTime} WHERE id = #{id}")
+    @Update("UPDATE biz_parking_space_plate SET status = #{status}, reject_reason = #{rejectReason}, update_time = #{updateTime} WHERE id = #{id}")
     int updateById(ParkingSpacePlate plate);
 }
 

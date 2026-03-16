@@ -23,7 +23,7 @@ public class CommunityController {
     @Autowired
     private CommunityService communityService;
 
-    @GetMapping("/list")
+    @GetMapping({"/list", "/admin/list"})
     @Operation(summary = "查询社区列表")
     public Result<IPage<Community>> list(@RequestParam(defaultValue = "1") Integer pageNum,
                                          @RequestParam(defaultValue = "10") Integer pageSize,
@@ -36,34 +36,34 @@ public class CommunityController {
         return Result.success(communityService.page(page, queryWrapper));
     }
     
-    @GetMapping("/all")
+    @GetMapping({"/all", "/admin/all"})
     @Operation(summary = "查询所有社区")
     public Result<List<Community>> all() {
         return Result.success(communityService.list());
     }
 
-    @PostMapping
+    @PostMapping({"", "/admin"})
     @Operation(summary = "新增社区")
     @Log(title = "社区管理", businessType = BusinessType.INSERT)
     public Result<Boolean> add(@RequestBody Community community) {
         return Result.success(communityService.save(community));
     }
 
-    @PutMapping
+    @PutMapping({"", "/admin"})
     @Operation(summary = "修改社区")
     @Log(title = "社区管理", businessType = BusinessType.UPDATE)
     public Result<Boolean> update(@RequestBody Community community) {
         return Result.success(communityService.updateById(community));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping({"/{id}", "/admin/{id}"})
     @Operation(summary = "删除社区")
     @Log(title = "社区管理", businessType = BusinessType.DELETE)
     public Result<Boolean> delete(@PathVariable Long id) {
         return Result.success(communityService.removeById(id));
     }
     
-    @GetMapping("/{id}")
+    @GetMapping({"/{id}", "/admin/{id}"})
     @Operation(summary = "获取社区详情")
     public Result<Community> get(@PathVariable Long id) {
         return Result.success(communityService.getById(id));

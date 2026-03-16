@@ -62,11 +62,19 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, Topic> implements
     }
 
     @Override
-    public Page<TopicVO> listTopics(Long communityId, Long userId, Integer pageNum, Integer pageSize) {
+    public Page<TopicVO> listTopics(Long communityId, Long userId, String status, Integer pageNum, Integer pageSize) {
         Page<Topic> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Topic> query = new LambdaQueryWrapper<>();
+        String statusCode = TopicStatusEnum.APPROVED.getCode();
+        if (status != null && !status.trim().isEmpty()) {
+            try {
+                statusCode = TopicStatusEnum.valueOf(status.trim().toUpperCase()).getCode();
+            } catch (Exception ignored) {
+                statusCode = status.trim();
+            }
+        }
         query.eq(Topic::getCommunityId, communityId)
-                .eq(Topic::getStatus, TopicStatusEnum.APPROVED.getCode())
+                .eq(Topic::getStatus, statusCode)
                 .orderByDesc(Topic::getCreateTime);
 
         Page<Topic> topicPage = baseMapper.selectPage(page, query);

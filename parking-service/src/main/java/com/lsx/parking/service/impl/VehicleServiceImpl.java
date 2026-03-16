@@ -67,7 +67,16 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         }
 
         // 2. 绑定到指定车位 (biz_parking_space_plate)
-        // 检查该车位下是否已绑定该车牌
+        // 2.1 校验车位是否存在且可用
+        ParkingSpace space = spaceMapper.selectById(dto.getSpaceId());
+        if (space == null) {
+            throw new RuntimeException("车位不存在");
+        }
+        if (!"AVAILABLE".equals(space.getStatus())) {
+            throw new RuntimeException("该车位已被预订或占用，不可绑定");
+        }
+
+        // 2.2 检查该车位下是否已绑定该车牌
         Long count = plateMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ParkingSpacePlate>()
                 .eq(ParkingSpacePlate::getSpaceId, dto.getSpaceId())
                 .eq(ParkingSpacePlate::getPlateNo, dto.getPlateNo())
@@ -77,7 +86,12 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             throw new RuntimeException("该车位已绑定或正在审核此车牌");
         }
 
-        // 插入车位-车牌关联记录，状态设为 PENDING
+        // 2.3 更新车位状态为 RESERVED (预订中)
+        space.setStatus("RESERVED");
+        space.setUpdateTime(LocalDateTime.now());
+        spaceMapper.updateById(space);
+
+        // 2.4 插入车位-车牌关联记录，状态设为 PENDING
         ParkingSpacePlate plateBind = new ParkingSpacePlate();
         plateBind.setSpaceId(dto.getSpaceId());
         plateBind.setUserId(dto.getUserId());
@@ -144,13 +158,42 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         if (!"PENDING".equals(plate.getStatus())) {
             throw new RuntimeException("该记录已审核");
         }
-        
-        plate.setStatus(dto.getStatus());
-        if ("REJECTED".equals(dto.getStatus())) {
+
+        String auditStatus = dto.getStatus();
+        LocalDateTime now = LocalDateTime.now();
+        if ("APPROVED".equals(auditStatus)) {
+            plate.setStatus("AWAITING_PAYMENT");
+            plate.setRejectReason(null);
+
+            ParkingSpace space = spaceMapper.selectById(plate.getSpaceId());
+            if (space != null && "AVAILABLE".equals(space.getStatus())) {
+                space.setStatus("RESERVED");
+                space.setUpdateTime(now);
+                spaceMapper.updateById(space);
+            }
+        } else if ("REJECTED".equals(auditStatus)) {
+            plate.setStatus("REJECTED");
             plate.setRejectReason(dto.getRejectReason());
+
+            ParkingSpace space = spaceMapper.selectById(plate.getSpaceId());
+            if (space != null && "RESERVED".equals(space.getStatus())) {
+                Long otherCount = plateMapper.selectCount(
+                        new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ParkingSpacePlate>()
+                                .eq(ParkingSpacePlate::getSpaceId, plate.getSpaceId())
+                                .ne(ParkingSpacePlate::getId, plate.getId())
+                                .in(ParkingSpacePlate::getStatus, "PENDING", "AWAITING_PAYMENT", "ACTIVE")
+                );
+                if (otherCount == null || otherCount == 0) {
+                    space.setStatus("AVAILABLE");
+                    space.setUpdateTime(now);
+                    spaceMapper.updateById(space);
+                }
+            }
+        } else {
+            throw new RuntimeException("非法审核状态：" + auditStatus);
         }
-        plate.setUpdateTime(LocalDateTime.now());
-        
+
+        plate.setUpdateTime(now);
         plateMapper.updateById(plate);
     }
 }

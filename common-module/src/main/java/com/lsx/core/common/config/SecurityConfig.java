@@ -64,6 +64,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
+                                "/**/v3/api-docs",
                                 "/v2/api-docs/**",
                                 "/swagger-resources/**",
                                 "/webjars/**"
@@ -77,28 +78,32 @@ public class SecurityConfig {
                         ).permitAll()
 
                         /* ===== 管理员（ADMIN）可访问 ===== ⭐ 先配置具体的admin路径 */
-                        .antMatchers("/api/repair/admin/**").hasAnyRole("ADMIN", "super_admin")  // ⭐ 放在前面！
-                        .antMatchers("/api/house/admin/**").hasAnyRole("ADMIN", "super_admin")
+                        .antMatchers("/api/repair/admin/**", "/api/repair/stats/**").hasAnyRole("ADMIN", "super_admin")  // ⭐ 报修统计及管理
+                        .antMatchers("/api/admin/user/**", "/api/admin/stats/**").hasAnyRole("ADMIN", "super_admin") // ⭐ 用户管理及系统统计
+                        .antMatchers("/api/house/admin/**", "/api/house/community/admin/**").hasAnyRole("ADMIN", "super_admin")
+                        .antMatchers("/api/system/config/**", "/api/monitor/operlog/**").hasAnyRole("ADMIN", "super_admin") // 系统配置及日志
                         .antMatchers("/api/parking/order/admin/**").hasAnyRole("ADMIN", "super_admin") // 停车订单管理
                         .antMatchers("/api/parking/space/admin/**").hasAnyRole("ADMIN", "super_admin") // 车位管理
                         .antMatchers("/api/parking/reserve/admin/**").hasAnyRole("ADMIN", "super_admin") // 车位预订管理
+                        .antMatchers("/api/vehicle/admin/**", "/api/parking/vehicle/admin/**", "/api/vehicle/audit/**").hasAnyRole("ADMIN", "super_admin") // 车辆审核管理
                         .antMatchers("/api/house/updateUserHouseStatus").hasAnyRole("ADMIN", "super_admin")
-                        .antMatchers("/api/fee/list").hasAnyRole("ADMIN", "super_admin") // 费用管理列表
+                        .antMatchers("/api/fee/list", "/api/fee/generate", "/api/fee/admin/**").hasAnyRole("ADMIN", "super_admin") // 费用管理
                         
-                        // 补充 访客、投诉、活动 管理端接口权限
-                        .antMatchers("/api/visitor/list", "/api/visitor/audit").hasAnyRole("ADMIN", "super_admin")
-                        .antMatchers("/api/complaint/list", "/api/complaint/handle").hasAnyRole("ADMIN", "super_admin")
-                        .antMatchers("/api/activity/publish", "/api/activity/signup/list").hasAnyRole("ADMIN", "super_admin")
+                        // 补充 访客、投诉、活动、公告 管理端统计及管理接口权限
+                        .antMatchers("/api/visitor/list", "/api/visitor/admin/**", "/api/visitor/stats/**").hasAnyRole("ADMIN", "super_admin")
+                        .antMatchers("/api/complaint/list", "/api/complaint/admin/**", "/api/complaint/stats/**").hasAnyRole("ADMIN", "super_admin")
+                        .antMatchers("/api/notice/admin/**", "/api/notice/stats/**").hasAnyRole("ADMIN", "super_admin") // notice/list 移除管理员限制，供业主访问
+                        .antMatchers("/api/activity/publish", "/api/activity/admin/**").hasAnyRole("ADMIN", "super_admin")
                         // 允许所有已认证用户（包括业主和管理员）查看活动列表
                         .antMatchers("/api/activity/list").authenticated() 
                         .antMatchers(org.springframework.http.HttpMethod.GET, "/api/activity/{id}").authenticated()
-                        .antMatchers(org.springframework.http.HttpMethod.DELETE, "/api/activity/{id}").hasAnyRole("ADMIN", "super_admin")
-                        .antMatchers(org.springframework.http.HttpMethod.PUT, "/api/activity").hasAnyRole("ADMIN", "super_admin") // 新增：活动修改接口
                         
                         /* ===== 访客、投诉 业主端接口 ===== */
                         .antMatchers("/api/visitor/apply", "/api/visitor/my").hasRole("OWNER")
                         .antMatchers("/api/complaint/submit", "/api/complaint/my").hasRole("OWNER")
                         .antMatchers("/api/activity/join").hasRole("OWNER")
+                        .antMatchers("/api/vehicle/bind").hasRole("OWNER")
+                        .antMatchers("/api/notice/list", "/api/notice/user/list", "/api/notice/unread-count", "/api/notice/*/read").hasRole("OWNER") // 业主可查看公告
 
                         /* ===== 普通业主（OWNER）可访问 ===== ⭐ 后配置通用路径 */
                         .antMatchers("/api/repair/**").hasRole("OWNER")  // ⭐ 放在后面！

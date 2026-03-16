@@ -28,7 +28,7 @@ public class HouseController {
 
     //1,根据id查询房屋信息
     @Operation(summary = "查询房屋信息")
-    @GetMapping("/getHouseInfoById")
+    @GetMapping("/admin/getHouseInfoById")
     public Result<HouseResult> getHouseInfoById(Long houseId) {
         HouseResult houseResult = houseService.getHouseInfoById(houseId);
         return Result.success(houseResult);
@@ -36,7 +36,7 @@ public class HouseController {
 
     //2，查询全部房屋信息
     @Operation(summary = "查询全部房屋信息")
-    @GetMapping("/getAllHouseInfo")
+    @GetMapping("/admin/getAllHouseInfo")
     public Result<List<HouseResult>> getAllHouseInfo() {
         List<HouseResult> houseResult = houseService.getAllHouseInfo();
         return Result.success(houseResult);
@@ -44,7 +44,7 @@ public class HouseController {
 
     //3,更改用户绑定房屋的状态
     @Operation(summary = "更改用户绑定房屋的状态")
-    @PostMapping("/updateUserHouseStatus")
+    @PostMapping("/admin/updateUserHouseStatus")
     public Result<Boolean> updateHouseStatus(
             @RequestParam Long id,  // 加上@RequestParam，明确是请求参数（避免参数绑定失败）
             @RequestParam String status) {

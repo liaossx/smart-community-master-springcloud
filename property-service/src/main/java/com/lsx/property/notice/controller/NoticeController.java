@@ -3,6 +3,7 @@ package com.lsx.property.notice.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lsx.core.common.Result.Result;
 import com.lsx.core.common.annotation.Log;
+import com.lsx.core.common.Util.UserContext;
 import com.lsx.core.common.enums.BusinessType;
 import com.lsx.property.notice.dto.BatchNoticeExpireDTO;
 import com.lsx.property.notice.dto.ExpiringNoticeDTO;
@@ -33,6 +34,12 @@ public class NoticeController {
         return Result.success(noticeService.createNotice(dto, userId));
     }
 
+    @GetMapping("/unread-count")
+    @Operation(summary = "获取未读通知数", description = "获取当前用户的未读通知数量")
+    public Result<Long> getUnreadCount(@RequestParam("userId") Long userId) {
+        return Result.success(noticeService.getUnreadCount(userId));
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "删除通知", description = "管理员删除通知")
     @Log(title = "通知公告", businessType = BusinessType.DELETE)
@@ -53,13 +60,24 @@ public class NoticeController {
         return Result.success(noticeService.getNoticeById(id));
     }
 
-    @GetMapping("/list")
+    @GetMapping({"/list", "/admin/list"})
     @Operation(summary = "通知列表", description = "分页查询通知列表")
-    public Result<Page<SysNotice>> listNotices(
+    public Result<?> listNotices(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
+        String role = UserContext.getRole();
+        boolean isOwner = role != null && role.toUpperCase().contains("OWNER");
+        if (isOwner) {
+            Long currentUserId = UserContext.getCurrentUserId();
+            Long effectiveUserId = currentUserId != null ? currentUserId : userId;
+            if (effectiveUserId == null) {
+                return Result.success(new Page<>(pageNum, pageSize));
+            }
+            return Result.success(noticeService.getUserNotices(effectiveUserId, pageNum, pageSize));
+        }
         return Result.success(noticeService.listNotices(title, status, pageNum, pageSize));
     }
 

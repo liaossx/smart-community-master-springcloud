@@ -17,6 +17,8 @@ import com.lsx.property.notice.service.NoticeService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -38,6 +40,7 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"noticeUserList", "noticeUnreadCount"}, allEntries = true)
     public Long createNotice(NoticeCreateDTO dto, Long userId) {
         SysNotice notice = new SysNotice();
         BeanUtils.copyProperties(dto, notice);
@@ -111,6 +114,7 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
     }
 
     @Override
+    @Cacheable(cacheNames = "noticeUserList", key = "#userId + ':' + #pageNum + ':' + #pageSize")
     public Page<NoticeDTO> getUserNotices(Long userId, Integer pageNum, Integer pageSize) {
         // 1. 获取用户关联的房屋信息
         List<HouseDTO> userHouses = houseServiceClient.getHousesByUserId(userId);
@@ -164,6 +168,7 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"noticeUserList", "noticeUnreadCount"}, allEntries = true)
     public Boolean readNotice(Long noticeId, Long userId) {
         SysNotice notice = noticeMapper.selectById(noticeId);
         if (notice == null || notice.getDeleted() == 1) {
@@ -192,6 +197,7 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"noticeUserList", "noticeUnreadCount"}, allEntries = true)
     public Boolean deleteNotice(Long noticeId) {
         SysNotice notice = noticeMapper.selectById(noticeId);
         if (notice == null) return false;
@@ -210,6 +216,7 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"noticeUserList", "noticeUnreadCount"}, allEntries = true)
     public Boolean updateNotice(Long id, NoticeCreateDTO dto) {
         SysNotice notice = noticeMapper.selectById(id);
         if (notice == null) return false;
@@ -257,6 +264,7 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {"noticeUserList", "noticeUnreadCount"}, allEntries = true)
     public Boolean batchExpireNotices(BatchNoticeExpireDTO dto) {
         if (dto.getNoticeIds() == null || dto.getNoticeIds().isEmpty()) {
             return false;
@@ -282,5 +290,53 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
             case MONTH_3: return now.plusMonths(3);
             default: return days != null ? now.plusDays(days) : null;
         }
+    }
+
+    @Override
+    @Cacheable(cacheNames = "noticeUnreadCount", key = "#userId")
+    public Long getUnreadCount(Long userId) {
+        // 1. 获取用户关联的房屋信息以确定可见范围
+        List<HouseDTO> userHouses = houseServiceClient.getHousesByUserId(userId);
+        Set<String> communityNames = new HashSet<>();
+        Set<String> buildingNos = new HashSet<>();
+        if (userHouses != null) {
+            for (HouseDTO h : userHouses) {
+                if (h.getCommunityName() != null) communityNames.add(h.getCommunityName());
+                if (h.getBuildingNo() != null) buildingNos.add(h.getBuildingNo());
+            }
+        }
+
+        // 2. 查询该用户可见的所有有效通知的总数
+        LambdaQueryWrapper<SysNotice> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysNotice::getPublishStatus, "PUBLISHED")
+                .eq(SysNotice::getDeleted, 0)
+                .and(w -> {
+                    w.eq(SysNotice::getTargetType, "ALL")
+                     .or(sub -> sub.eq(SysNotice::getTargetType, "USER").eq(SysNotice::getTargetUserId, userId));
+                    
+                    if (!communityNames.isEmpty()) {
+                        w.or(sub -> sub.eq(SysNotice::getTargetType, "COMMUNITY").in(SysNotice::getCommunityName, communityNames));
+                    }
+                    if (!buildingNos.isEmpty()) {
+                        w.or(sub -> sub.eq(SysNotice::getTargetType, "BUILDING").in(SysNotice::getTargetBuilding, buildingNos));
+                    }
+                })
+                // 排除已过期的
+                .and(w -> w.isNull(SysNotice::getExpireTime).or().gt(SysNotice::getExpireTime, LocalDateTime.now()));
+        
+        // 注意：这里需要先查出所有可见的通知ID，然后去 sys_notice_read 表里排除已读的
+        List<SysNotice> visibleNotices = noticeMapper.selectList(wrapper);
+        if (visibleNotices.isEmpty()) {
+            return 0L;
+        }
+        
+        List<Long> visibleIds = visibleNotices.stream().map(SysNotice::getId).collect(Collectors.toList());
+        
+        Long validReadCount = noticeReadMapper.selectCount(new QueryWrapper<SysNoticeRead>()
+                .eq("user_id", userId)
+                .eq("status", "READ")
+                .in("notice_id", visibleIds));
+        
+        return (long) visibleIds.size() - validReadCount;
     }
 }

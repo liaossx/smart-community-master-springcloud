@@ -8,6 +8,8 @@ import com.lsx.house.mapper.UserHouseMapper;
 import com.lsx.house.service.HouseService;
 import com.lsx.house.vo.HouseResult;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -21,6 +23,7 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
     private UserHouseMapper userHouseMapper;
 
     @Override
+    @Cacheable(cacheNames = "houseInfo", key = "#houseId")
     public HouseResult getHouseInfoById(Long houseId) {
         House house = baseMapper.selectById(houseId);
         if (house == null) return null;
@@ -30,6 +33,7 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
     }
 
     @Override
+    @Cacheable(cacheNames = "houseInfo", key = "'all'")
     public List<HouseResult> getAllHouseInfo() {
         return baseMapper.selectList(null).stream().map(house -> {
             HouseResult result = new HouseResult();
@@ -39,6 +43,7 @@ public class HouseServiceImpl extends ServiceImpl<HouseMapper, House> implements
     }
 
     @Override
+    @CacheEvict(cacheNames = "houseInfo", allEntries = true)
     public void updateHouseStatus(Long id, String status) {
         // id 是 UserHouse 的 id
         UserHouse userHouse = userHouseMapper.selectById(id);

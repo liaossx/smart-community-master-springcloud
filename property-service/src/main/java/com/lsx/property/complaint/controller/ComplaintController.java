@@ -36,7 +36,7 @@ public class ComplaintController {
         return Result.success(page);
     }
 
-    @GetMapping("/list")
+    @GetMapping({"/list", "/admin/list"})
     @Operation(summary = "管理员查询列表")
     public Result<IPage<ComplaintDTO>> list(@RequestParam(value = "status", required = false) String status,
                                             @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
@@ -45,7 +45,7 @@ public class ComplaintController {
         return Result.success(page);
     }
 
-    @PutMapping("/handle")
+    @PutMapping({"/handle", "/admin/handle"})
     @Operation(summary = "处理投诉")
     @Log(title = "投诉建议", businessType = BusinessType.UPDATE)
     public Result<Boolean> handle(@RequestParam("id") Long id, @RequestParam("result") String result) {
