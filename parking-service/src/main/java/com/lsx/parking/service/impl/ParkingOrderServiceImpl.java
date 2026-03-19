@@ -32,6 +32,7 @@ public class ParkingOrderServiceImpl
         implements ParkingOrderService {
 
     private static final String STATUS_UNPAID = "UNPAID";
+    private static final String STATUS_PAYING = "PAYING";
     private static final String STATUS_PAID = "PAID";
 
     @Autowired
@@ -161,22 +162,11 @@ public class ParkingOrderServiceImpl
         }
 
         // 1. 更新订单状态
-        order.setStatus(STATUS_PAID);
+        order.setStatus(STATUS_PAYING);
         order.setPayChannel(dto.getPayChannel());
         order.setPayRemark(dto.getPayRemark());
-        order.setPayTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         this.updateById(order);
-
-        // 2. 如果指定了车位 -> 占用车位
-        if (order.getSpaceId() != null) {
-            ParkingSpace space = parkingSpaceMapper.selectById(order.getSpaceId());
-            if (space != null) {
-                space.setStatus("OCCUPIED");
-                space.setUpdateTime(LocalDateTime.now());
-                parkingSpaceMapper.updateById(space);
-            }
-        }
 
         return true;
     }

@@ -23,6 +23,12 @@ UPDATE sys_user SET community_id = 1, role = 'owner' WHERE username = 'owner1';
 -- 假设存在业主 owner2，绑定到 2号社区
 UPDATE sys_user SET community_id = 2, role = 'owner' WHERE username = 'owner2';
 
+-- 2.1 增加维修员数据
+-- 密码均为 123456 (加密后)
+INSERT INTO sys_user (username, password, real_name, phone, role, community_id, status, create_time, update_time) VALUES
+('worker1', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '张师傅', '13511112222', 'worker', 1, 1, NOW(), NOW()),
+('worker2', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '李师傅', '13533334444', 'worker', 1, 1, NOW(), NOW());
+
 
 -- 3. 访客数据 (sys_visitor)
 INSERT INTO sys_visitor (user_id, community_id, visitor_name, visitor_phone, reason, visit_time, car_no, status, create_time) VALUES

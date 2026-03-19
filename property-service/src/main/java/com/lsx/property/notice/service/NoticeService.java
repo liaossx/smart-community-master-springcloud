@@ -26,5 +26,5 @@ public interface NoticeService extends IService<SysNotice> {
     
     Boolean batchExpireNotices(BatchNoticeExpireDTO dto);
     
-    Long getUnreadCount(Long userId);
+    Integer getUnreadCount(Long userId);
 }

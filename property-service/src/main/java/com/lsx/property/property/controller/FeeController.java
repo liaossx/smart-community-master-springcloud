@@ -2,6 +2,7 @@ package com.lsx.property.property.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lsx.core.common.Result.Result;
+import com.lsx.core.common.Util.PaymentSignUtil;
 import com.lsx.property.property.dto.CurrentFeeDTO;
 import com.lsx.property.property.dto.FeeDTO;
 import com.lsx.property.property.dto.FeeHistoryDTO;
@@ -15,8 +16,13 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Resource;
+import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -32,6 +38,21 @@ public class FeeController {
 
     @Autowired
     private FeeService feeService;
+
+    @Value("${mock.payment.enabled:false}")
+    private boolean mockPaymentEnabled;
+
+    @Value("${internal.token:}")
+    private String internalToken;
+
+    @Value("${payment.secret:}")
+    private String paymentSecret;
+
+    @Value("${payment.allowedSkewSeconds:300}")
+    private long paymentAllowedSkewSeconds;
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     @GetMapping("/current")
     @Operation(summary = "查询当前未缴费用", description = "查询指定用户当前所有未缴纳的物业费用")
@@ -155,17 +176,78 @@ public class FeeController {
     }
 
     @PostMapping("/pay/callback")
-    @Operation(summary = "支付回调", description = "模拟支付回调接口")
+    @Operation(summary = "支付回调", description = "支付渠道异步通知回调")
     public Result<String> payCallback(
             @Parameter(description = "订单号", required = true) @RequestParam("orderNo") String orderNo,
             @Parameter(description = "交易流水号", required = true) @RequestParam("tradeNo") String tradeNo,
-            @Parameter(description = "支付状态", required = true) @RequestParam("status") String status) {
+            @Parameter(description = "支付状态", required = true) @RequestParam("status") String status,
+            @RequestParam(value = "amount", required = false) BigDecimal amount,
+            @RequestParam(value = "payChannel", required = false) String payChannel,
+            @RequestHeader(value = "X-Pay-Timestamp", required = false) String ts,
+            @RequestHeader(value = "X-Pay-Nonce", required = false) String nonce,
+            @RequestHeader(value = "X-Pay-Sign", required = false) String sign) {
+        if (paymentSecret == null || paymentSecret.isEmpty()) {
+            return Result.fail("支付配置缺失");
+        }
+        long now = System.currentTimeMillis() / 1000;
+        long timestamp;
+        try {
+            timestamp = Long.parseLong(ts);
+        } catch (Exception e) {
+            return Result.fail("时间戳无效");
+        }
+        if (Math.abs(now - timestamp) > paymentAllowedSkewSeconds) {
+            return Result.fail("回调已过期");
+        }
+        if (nonce == null || nonce.isEmpty()) {
+            return Result.fail("nonce缺失");
+        }
+        String nonceKey = "pay:nonce:fee:" + nonce;
+        Boolean ok = stringRedisTemplate.opsForValue().setIfAbsent(nonceKey, "1", Duration.ofSeconds(paymentAllowedSkewSeconds * 2));
+        if (ok == null || !ok) {
+            return Result.fail("重复回调");
+        }
+        Map<String, String> params = new java.util.HashMap<>();
+        params.put("orderNo", orderNo);
+        params.put("tradeNo", tradeNo);
+        params.put("status", status);
+        params.put("amount", amount != null ? amount.toPlainString() : "");
+        params.put("payChannel", payChannel != null ? payChannel : "");
+        params.put("timestamp", String.valueOf(timestamp));
+        params.put("nonce", nonce);
+        if (!PaymentSignUtil.verify(paymentSecret, params, sign)) {
+            stringRedisTemplate.delete(nonceKey);
+            return Result.fail("验签失败");
+        }
         try {
             log.info("收到支付回调: orderNo={}, status={}", orderNo, status);
-            feeService.payCallback(orderNo, tradeNo, status);
+            feeService.payCallback(orderNo, tradeNo, status, amount, payChannel);
             return Result.success("回调处理成功");
         } catch (Exception e) {
             log.error("支付回调处理失败", e);
+            return Result.fail("回调处理失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/pay/callback/mock")
+    @Operation(summary = "支付回调(模拟)", description = "仅用于测试环境的模拟回调")
+    public Result<String> payCallbackMock(
+            @RequestParam("orderNo") String orderNo,
+            @RequestParam("tradeNo") String tradeNo,
+            @RequestParam("status") String status,
+            @RequestParam(value = "amount", required = false) BigDecimal amount,
+            @RequestParam(value = "payChannel", required = false) String payChannel,
+            @RequestHeader(value = "X-Internal-Token", required = false) String token) {
+        if (!mockPaymentEnabled) {
+            return Result.fail("接口已关闭");
+        }
+        if (internalToken != null && !internalToken.isEmpty() && !internalToken.equals(token)) {
+            return Result.fail("无权访问");
+        }
+        try {
+            feeService.payCallback(orderNo, tradeNo, status, amount, payChannel);
+            return Result.success("回调处理成功");
+        } catch (Exception e) {
             return Result.fail("回调处理失败：" + e.getMessage());
         }
     }

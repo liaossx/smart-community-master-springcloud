@@ -30,6 +30,8 @@ public class ParkingOrder {
     private LocalDateTime endTime;
     private LocalDateTime payTime;
     private String payChannel;
+    private String tradeNo;
+    private BigDecimal paidAmount;
     private String payRemark;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

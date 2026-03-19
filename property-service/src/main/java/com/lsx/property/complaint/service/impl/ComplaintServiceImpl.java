@@ -102,11 +102,14 @@ public class ComplaintServiceImpl extends ServiceImpl<SysComplaintMapper, SysCom
         if (c == null) return false;
         String role = UserContext.getRole();
         Long cid = UserContext.getCommunityId();
-        
-        // 简单校验一下权限（如果不是超级管理员，且投诉有社区ID，且当前管理员社区ID不匹配）
-        if (!"super_admin".equalsIgnoreCase(role) && cid != null && c.getCommunityId() != null && !cid.equals(c.getCommunityId())) {
-             // 实际上 Service 层一般不做这么细的鉴权，Controller 层做或者网关做。这里保留原逻辑。
-             // throw new RuntimeException("无权处理其他社区投诉");
+
+        if (!"super_admin".equalsIgnoreCase(role)) {
+            if (cid == null) {
+                throw new RuntimeException("无权处理投诉");
+            }
+            if (c.getCommunityId() != null && !cid.equals(c.getCommunityId())) {
+                throw new RuntimeException("无权处理其他社区投诉");
+            }
         }
         
         c.setResult(result);
@@ -115,4 +118,3 @@ public class ComplaintServiceImpl extends ServiceImpl<SysComplaintMapper, SysCom
         return this.updateById(c);
     }
 }
-

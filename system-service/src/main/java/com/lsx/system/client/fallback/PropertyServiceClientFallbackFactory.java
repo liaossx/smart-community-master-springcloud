@@ -1,6 +1,8 @@
 package com.lsx.system.client.fallback;
 
+import com.lsx.core.common.Result.Result;
 import com.lsx.system.client.PropertyServiceClient;
+import com.lsx.system.dto.NoticeCreateDTO;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +16,11 @@ public class PropertyServiceClientFallbackFactory implements FallbackFactory<Pro
     @Override
     public PropertyServiceClient create(Throwable cause) {
         return new PropertyServiceClient() {
+            @Override
+            public Result<Long> createNoticeInner(NoticeCreateDTO dto, Long userId, String internalToken) {
+                return Result.fail("调用物业服务失败: " + cause.getMessage());
+            }
+
             @Override
             public Map<String, Object> getComplaintStats() {
                 Map<String, Object> m = new HashMap<>();

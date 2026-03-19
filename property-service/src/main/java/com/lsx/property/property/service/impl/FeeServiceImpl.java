@@ -1,6 +1,7 @@
 package com.lsx.property.property.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lsx.core.common.Util.UserContext;
 import com.lsx.property.client.HouseServiceClient;
@@ -125,7 +126,7 @@ public class FeeServiceImpl implements FeeService {
 
         // 2. 查询未缴纳账单
         QueryWrapper<SysFee> feeQuery = new QueryWrapper<>();
-        feeQuery.in("house_id", houseIds).eq("status", "UNPAID").orderByDesc("due_date");
+        feeQuery.in("house_id", houseIds).in("status", Arrays.asList("UNPAID", "PAYING")).orderByDesc("due_date");
         List<SysFee> fees = feeMapper.selectList(feeQuery);
         
         Map<Long, HouseDTO> houseMap = userHouses.stream()
@@ -343,23 +344,21 @@ public class FeeServiceImpl implements FeeService {
         record.setPayType(dto.getPayType());
         record.setPayAmount(fee.getFeeAmount());
         record.setOrderNo(orderNo);
-        record.setTradeNo("TRADE_" + orderNo);
-        record.setPayTime(LocalDateTime.now());
-        record.setStatus("SUCCESS");
+        record.setStatus("PENDING");
         feeRecordMapper.insert(record);
 
         // 更新账单状态
-        fee.setStatus("PAID");
+        fee.setStatus("PAYING");
         fee.setUpdateTime(LocalDateTime.now());
         feeMapper.updateById(fee);
 
-        return "缴费成功，订单号：" + orderNo;
+        return orderNo;
     }
 
 
     @Override
     @Transactional
-    public void payCallback(String orderNo, String tradeNo, String status) {
+    public void payCallback(String orderNo, String tradeNo, String status, BigDecimal payAmount, String payChannel) {
         QueryWrapper<SysFeeRecord> query = new QueryWrapper<>();
         query.eq("order_no", orderNo);
         SysFeeRecord record = feeRecordMapper.selectOne(query);
@@ -368,16 +367,46 @@ public class FeeServiceImpl implements FeeService {
             return;
         }
 
-        record.setTradeNo(tradeNo);
-        record.setPayTime(LocalDateTime.now());
-        record.setStatus(status);
-        feeRecordMapper.updateById(record);
+        if ("SUCCESS".equalsIgnoreCase(record.getStatus())) {
+            if (record.getTradeNo() != null && tradeNo != null && !record.getTradeNo().equals(tradeNo)) {
+                throw new RuntimeException("重复回调流水号不一致");
+            }
+            return;
+        }
 
-        if ("SUCCESS".equals(status)) {
-            SysFee fee = feeMapper.selectById(record.getFeeId());
-            fee.setStatus("PAID");
-            fee.setUpdateTime(LocalDateTime.now());
-            feeMapper.updateById(fee);
+        if (payAmount != null && record.getPayAmount() != null) {
+            BigDecimal expected = record.getPayAmount().setScale(2, RoundingMode.HALF_UP);
+            BigDecimal actual = payAmount.setScale(2, RoundingMode.HALF_UP);
+            if (expected.compareTo(actual) != 0) {
+                throw new RuntimeException("支付金额不一致");
+            }
+        }
+
+        String finalStatus = "SUCCESS".equalsIgnoreCase(status) ? "SUCCESS" : "FAIL";
+
+        UpdateWrapper<SysFeeRecord> recordUpdate = new UpdateWrapper<>();
+        recordUpdate.eq("order_no", orderNo)
+                .ne("status", "SUCCESS")
+                .set("trade_no", tradeNo)
+                .set("pay_time", LocalDateTime.now())
+                .set("status", finalStatus)
+                .set("remark", payChannel);
+        int updated = feeRecordMapper.update(null, recordUpdate);
+        if (updated == 0) {
+            SysFeeRecord latest = feeRecordMapper.selectOne(new QueryWrapper<SysFeeRecord>().eq("order_no", orderNo));
+            if (latest != null && "SUCCESS".equalsIgnoreCase(latest.getStatus())) {
+                return;
+            }
+            throw new RuntimeException("支付回调处理失败");
+        }
+
+        if ("SUCCESS".equals(finalStatus)) {
+            UpdateWrapper<SysFee> feeUpdate = new UpdateWrapper<>();
+            feeUpdate.eq("id", record.getFeeId())
+                    .ne("status", "PAID")
+                    .set("status", "PAID")
+                    .set("update_time", LocalDateTime.now());
+            feeMapper.update(null, feeUpdate);
         }
     }
 

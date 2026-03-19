@@ -71,13 +71,13 @@ spring:
           filters:
             - RewritePath=/api/fee/(?<segment>v3/api-docs), /$\{segment}
 
-        # 工单服务路由 (报修)
+        # 工单服务路由 (报修/工单)
         - id: workorder-service
           uri: lb://workorder-service
           predicates:
-            - Path=/api/repair/**
+            - Path=/api/repair/**, /api/workorder/**
           filters:
-            - RewritePath=/api/repair/(?<segment>v3/api-docs), /$\{segment}
+            - RewritePath=/api/repair/(?<segment>v3/api-docs), /${segment}
 
         # 系统管理服务 (日志/统计/配置)
         - id: system-service

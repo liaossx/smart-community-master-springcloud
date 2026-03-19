@@ -74,11 +74,21 @@ public class SecurityConfig {
                         .antMatchers(
                                 "/api/user/login",
                                 "/api/user/register",
-                                "/api/common/**"
+                                "/api/common/**",
+                                "/api/user/inner/**",
+                                "/api/notice/inner/**",
+                                "/api/fee/pay/callback",
+                                "/api/fee/pay/callback/mock",
+                                "/api/parking/pay/callback",
+                                "/api/parking/pay/success",
+                                "/api/house/list/ids",
+                                "/api/house/*",
+                                "/api/house/community/*/name"
                         ).permitAll()
 
                         /* ===== 管理员（ADMIN）可访问 ===== ⭐ 先配置具体的admin路径 */
                         .antMatchers("/api/repair/admin/**", "/api/repair/stats/**").hasAnyRole("ADMIN", "super_admin")  // ⭐ 报修统计及管理
+                        .antMatchers("/api/workorder/admin/**").hasAnyRole("ADMIN", "super_admin") // ⭐ 工单管理
                         .antMatchers("/api/admin/user/**", "/api/admin/stats/**").hasAnyRole("ADMIN", "super_admin") // ⭐ 用户管理及系统统计
                         .antMatchers("/api/house/admin/**", "/api/house/community/admin/**").hasAnyRole("ADMIN", "super_admin")
                         .antMatchers("/api/system/config/**", "/api/monitor/operlog/**").hasAnyRole("ADMIN", "super_admin") // 系统配置及日志
@@ -103,6 +113,7 @@ public class SecurityConfig {
                         .antMatchers("/api/complaint/submit", "/api/complaint/my").hasRole("OWNER")
                         .antMatchers("/api/activity/join").hasRole("OWNER")
                         .antMatchers("/api/vehicle/bind").hasRole("OWNER")
+                        .antMatchers("/api/workorder/worker/**").hasRole("worker") // 维修员操作
                         .antMatchers("/api/notice/list", "/api/notice/user/list", "/api/notice/unread-count", "/api/notice/*/read").hasRole("OWNER") // 业主可查看公告
 
                         /* ===== 普通业主（OWNER）可访问 ===== ⭐ 后配置通用路径 */

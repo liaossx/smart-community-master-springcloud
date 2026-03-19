@@ -46,11 +46,13 @@ CREATE TABLE IF NOT EXISTS biz_parking_order (
     space_id            BIGINT          NOT NULL COMMENT '车位ID',
     order_type          VARCHAR(32)     NOT NULL COMMENT '订单类型：TEMP（临时）/ FIXED（固定）',
     amount              DECIMAL(10,2)   NOT NULL COMMENT '订单金额',
-    status              VARCHAR(32)     NOT NULL DEFAULT 'UNPAID' COMMENT '状态：UNPAID（未支付）/ PAID（已支付）/ CANCELLED（已取消）',
+    paid_amount         DECIMAL(10,2)   NULL COMMENT '实付金额',
+    status              VARCHAR(32)     NOT NULL DEFAULT 'UNPAID' COMMENT '状态：UNPAID（未支付）/ PAYING（支付中）/ PAID（已支付）/ CANCELLED（已取消）',
     start_time          DATETIME        NOT NULL COMMENT '停车开始时间',
     end_time            DATETIME        NULL COMMENT '停车结束时间',
     pay_time            DATETIME        NULL COMMENT '支付时间',
     pay_channel         VARCHAR(32)     NULL COMMENT '支付渠道',
+    trade_no            VARCHAR(128)    NULL COMMENT '支付流水号',
     pay_remark          VARCHAR(255)    NULL COMMENT '支付备注',
     create_time         DATETIME        NOT NULL COMMENT '创建时间',
     update_time         DATETIME        NOT NULL COMMENT '更新时间',
@@ -58,8 +60,8 @@ CREATE TABLE IF NOT EXISTS biz_parking_order (
     INDEX idx_user_id (user_id),
     INDEX idx_space_id (space_id),
     INDEX idx_status (status),
-    INDEX idx_create_time (create_time)
+    INDEX idx_create_time (create_time),
+    UNIQUE KEY uk_trade_no (trade_no)
 ) COMMENT '停车订单表';
-
 
 

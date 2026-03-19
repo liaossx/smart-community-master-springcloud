@@ -7,6 +7,7 @@ import com.lsx.property.property.dto.FeeHistoryDTO;
 import com.lsx.property.property.dto.GenerateFeeDTO;
 import com.lsx.property.property.dto.PayFeeDTO;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,9 +24,8 @@ public interface FeeService {
 
     String payFee(PayFeeDTO dto, Long userId);
 
-    void payCallback(String orderNo, String tradeNo, String status);
+    void payCallback(String orderNo, String tradeNo, String status, BigDecimal payAmount, String payChannel);
 
     Page<FeeDTO> adminList(String status, String ownerName, Integer pageNum, Integer pageSize);
     boolean remind(List<Long> feeIds);
 }
-

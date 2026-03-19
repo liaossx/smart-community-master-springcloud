@@ -38,15 +38,19 @@ public class AdminStatsService {
         }
         data.put("community", communityStats);
 
-        data.put("complaint", propertyServiceClient.getComplaintStats());
-        data.put("repair", workorderServiceClient.getRepairStats());
-        data.put("visitor", propertyServiceClient.getVisitorStats());
+        Map<String, Object> complaintStats = propertyServiceClient.getComplaintStats();
+        Map<String, Object> repairStats = workorderServiceClient.getRepairStats();
+        Map<String, Object> visitorStats = propertyServiceClient.getVisitorStats();
+        data.put("complaint", complaintStats);
+        data.put("repair", repairStats);
+        data.put("visitor", visitorStats);
 
         Map<String, Object> userStats = new HashMap<>();
         if ("super_admin".equalsIgnoreCase(role)) {
             userStats.put("total", userServiceClient.countUsers());
             userStats.put("owner", userServiceClient.countUsersByRole("owner"));
             userStats.put("admin", userServiceClient.countUsersByRole("admin"));
+            userStats.put("worker", userServiceClient.countUsersByRole("worker"));
         } else {
             Long ownerCount = 0L;
             if (tokenCommunityId != null) {
@@ -61,6 +65,42 @@ public class AdminStatsService {
         data.put("complaintType", propertyServiceClient.getComplaintTypeStats());
         data.put("repairTrend", workorderServiceClient.getRepairTrend());
 
+        long todoTotal = 0L;
+        todoTotal += getNumberAsLong(complaintStats, "pending");
+        todoTotal += getNumberAsLong(visitorStats, "pending");
+        todoTotal += getNestedNumberAsLong(repairStats, "repair", "pending");
+        todoTotal += getNestedNumberAsLong(repairStats, "workorder", "pending");
+        data.put("todoTotal", todoTotal);
+
+        long todayRepair = getNumberAsLong(repairStats, "todayRepair");
+        data.put("todayRepair", todayRepair);
+
         return data;
+    }
+
+    private long getNumberAsLong(Map<String, Object> map, String key) {
+        if (map == null || key == null) {
+            return 0L;
+        }
+        Object val = map.get(key);
+        if (val == null) {
+            return 0L;
+        }
+        if (val instanceof Number) {
+            return ((Number) val).longValue();
+        }
+        return 0L;
+    }
+
+    @SuppressWarnings("unchecked")
+    private long getNestedNumberAsLong(Map<String, Object> map, String nestedKey, String key) {
+        if (map == null || nestedKey == null || key == null) {
+            return 0L;
+        }
+        Object nested = map.get(nestedKey);
+        if (!(nested instanceof Map)) {
+            return 0L;
+        }
+        return getNumberAsLong((Map<String, Object>) nested, key);
     }
 }

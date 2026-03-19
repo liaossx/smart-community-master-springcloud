@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -170,11 +171,30 @@ public class UserController {
         User user = userService.getById(id);
         if (user == null) return null;
         UserInfoDTO dto = new UserInfoDTO();
+        dto.setId(user.getId());
         dto.setUserId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setName(user.getRealName());
         dto.setPhone(user.getPhone());
+        dto.setRole(user.getRole());
         return dto;
+    }
+
+    @GetMapping("/inner/list/role")
+    public Result<List<UserInfoDTO>> getUsersByRole(@RequestParam("role") String role) {
+        List<User> users = userService.list(new LambdaQueryWrapper<User>().eq(User::getRole, role));
+        List<UserInfoDTO> dtos = new ArrayList<>();
+        for (User user : users) {
+            UserInfoDTO dto = new UserInfoDTO();
+            dto.setId(user.getId());
+            dto.setUserId(user.getId());
+            dto.setUsername(user.getUsername());
+            dto.setName(user.getRealName());
+            dto.setPhone(user.getPhone());
+            dto.setRole(user.getRole());
+            dtos.add(dto);
+        }
+        return Result.success(dtos);
     }
 
     @GetMapping("/count")

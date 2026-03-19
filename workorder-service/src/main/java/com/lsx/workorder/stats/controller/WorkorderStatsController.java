@@ -3,7 +3,9 @@ package com.lsx.workorder.stats.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lsx.core.common.Util.UserContext;
 import com.lsx.workorder.repair.entity.Repair;
+import com.lsx.workorder.repair.entity.WorkOrder;
 import com.lsx.workorder.repair.service.RepairService;
+import com.lsx.workorder.repair.service.WorkOrderService;
 import com.lsx.workorder.repair.vo.RepairStatsResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +28,9 @@ public class WorkorderStatsController {
     @Resource
     private RepairService repairService;
 
+    @Resource
+    private WorkOrderService workOrderService;
+
     @GetMapping({"/repair/stats", "/repair/admin/stats"})
     public Map<String, Object> getRepairStats() {
         String role = UserContext.getRole();
@@ -44,6 +49,23 @@ public class WorkorderStatsController {
             repairStats.put("pending", 0);
         }
 
+        // 工单统计
+        LambdaQueryWrapper<WorkOrder> orderWrapper = new LambdaQueryWrapper<>();
+        if (!"super_admin".equalsIgnoreCase(role) && communityId != null) {
+            orderWrapper.eq(WorkOrder::getCommunityId, communityId);
+        }
+        
+        Map<String, Object> workorderStats = new HashMap<>();
+        workorderStats.put("total", workOrderService.count(orderWrapper));
+        workorderStats.put("pending", workOrderService.count(orderWrapper.clone().eq(WorkOrder::getStatus, "PENDING")));
+        workorderStats.put("assigned", workOrderService.count(orderWrapper.clone().eq(WorkOrder::getStatus, "ASSIGNED")));
+        workorderStats.put("processing", workOrderService.count(orderWrapper.clone().eq(WorkOrder::getStatus, "PROCESSING")));
+        workorderStats.put("completed", workOrderService.count(orderWrapper.clone().eq(WorkOrder::getStatus, "COMPLETED")));
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("repair", repairStats);
+        result.put("workorder", workorderStats);
+
         LocalDateTime todayStart = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
         LocalDateTime todayEnd = LocalDateTime.of(LocalDate.now(), LocalTime.MAX);
         LambdaQueryWrapper<Repair> repairTodayWrapper = new LambdaQueryWrapper<>();
@@ -52,9 +74,9 @@ public class WorkorderStatsController {
             repairTodayWrapper.eq(Repair::getCommunityId, communityId);
         }
         long todayCount = repairService.count(repairTodayWrapper);
-        repairStats.put("today", todayCount);
+        result.put("todayRepair", todayCount);
 
-        return repairStats;
+        return result;
     }
 
     @GetMapping({"/repair/stats/trend", "/repair/admin/stats/trend"})

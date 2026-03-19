@@ -75,10 +75,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             registerDto.setRole("super_admin");
         }
 
-        //校验角色必须是"owner"、"admin" 或 "super_admin"
+        //校验角色必须是"owner"、"admin"、"super_admin" 或 "worker"
         String role = registerDto.getRole();
-        if(role == null || (!"owner".equals(role) && !"admin".equals(role) && !"super_admin".equals(role))){
-            throw new RuntimeException("角色必须是'owner'、'admin' 或 'super_admin'");
+        if(role == null || (!"owner".equals(role) && !"admin".equals(role) && !"super_admin".equals(role) && !"worker".equals(role))){
+            throw new RuntimeException("角色必须是'owner'、'admin'、'super_admin' 或 'worker'");
         }
         // 1. 检查用户名是否存在
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();

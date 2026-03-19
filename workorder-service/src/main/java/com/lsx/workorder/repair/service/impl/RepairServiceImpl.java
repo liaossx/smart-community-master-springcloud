@@ -17,14 +17,18 @@ import com.lsx.workorder.repair.dto.RepairDto;
 import com.lsx.workorder.repair.entity.Repair;
 import com.lsx.workorder.repair.mapper.RepairMapper;
 import com.lsx.workorder.repair.service.RepairService;
+import com.lsx.workorder.repair.service.WorkOrderService;
 import com.lsx.workorder.repair.vo.RepairResult;
 import com.lsx.workorder.repair.vo.RepairStatsResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -42,7 +46,12 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+    @Resource
+    @Lazy
+    private WorkOrderService workOrderService;
+
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean submitRepair(RepairDto repairdto) {
         String buildingNo = repairdto.getBuildingNo();
         String houseNo = repairdto.getHouseNo();
@@ -96,6 +105,7 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean updateRepairStatus(Long repairId, String status, String remark) {
         Repair repair = baseMapper.selectById(repairId);
         if (repair == null) {
@@ -103,7 +113,14 @@ public class RepairServiceImpl extends ServiceImpl<RepairMapper, Repair> impleme
         }
         repair.setStatus(status);
         repair.setHandleRemark(remark);
-        return baseMapper.updateById(repair) > 0;
+        boolean success = baseMapper.updateById(repair) > 0;
+        
+        // 如果状态变更为 processing，自动生成工单
+        if (success && "processing".equalsIgnoreCase(status)) {
+            workOrderService.createFromRepair(repairId);
+        }
+        
+        return success;
     }
 
     @Override

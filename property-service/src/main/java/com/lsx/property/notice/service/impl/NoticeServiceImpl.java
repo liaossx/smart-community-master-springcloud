@@ -51,8 +51,18 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
         // 权限处理
         String role = UserContext.getRole();
         Long communityId = UserContext.getCommunityId();
-        
-        if (!"super_admin".equalsIgnoreCase(role)) {
+
+        if (!StringUtils.hasText(role)) {
+            if (dto.getCommunityId() != null) {
+                notice.setCommunityId(dto.getCommunityId());
+                if (!StringUtils.hasText(dto.getCommunityName())) {
+                    String communityName = houseServiceClient.getCommunityNameById(dto.getCommunityId());
+                    if (communityName != null) {
+                        notice.setCommunityName(communityName);
+                    }
+                }
+            }
+        } else if (!"super_admin".equalsIgnoreCase(role)) {
             if (communityId == null) {
                 throw new RuntimeException("普通管理员必须绑定社区才能发布通知");
             }
@@ -201,9 +211,18 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
     public Boolean deleteNotice(Long noticeId) {
         SysNotice notice = noticeMapper.selectById(noticeId);
         if (notice == null) return false;
-        
-        // 权限校验略...
-        
+
+        String role = UserContext.getRole();
+        Long communityId = UserContext.getCommunityId();
+        if (!"super_admin".equalsIgnoreCase(role)) {
+            if (communityId == null) {
+                throw new RuntimeException("无权删除通知");
+            }
+            if (notice.getCommunityId() != null && !communityId.equals(notice.getCommunityId())) {
+                throw new RuntimeException("无权删除其他社区通知");
+            }
+        }
+
         notice.setDeleted(1);
         noticeMapper.updateById(notice);
         return true;
@@ -294,7 +313,7 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
 
     @Override
     @Cacheable(cacheNames = "noticeUnreadCount", key = "#userId")
-    public Long getUnreadCount(Long userId) {
+    public Integer getUnreadCount(Long userId) {
         // 1. 获取用户关联的房屋信息以确定可见范围
         List<HouseDTO> userHouses = houseServiceClient.getHousesByUserId(userId);
         Set<String> communityNames = new HashSet<>();
@@ -327,7 +346,7 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
         // 注意：这里需要先查出所有可见的通知ID，然后去 sys_notice_read 表里排除已读的
         List<SysNotice> visibleNotices = noticeMapper.selectList(wrapper);
         if (visibleNotices.isEmpty()) {
-            return 0L;
+            return 0;
         }
         
         List<Long> visibleIds = visibleNotices.stream().map(SysNotice::getId).collect(Collectors.toList());
@@ -337,6 +356,6 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
                 .eq("status", "READ")
                 .in("notice_id", visibleIds));
         
-        return (long) visibleIds.size() - validReadCount;
+        return visibleIds.size() - Math.toIntExact(validReadCount);
     }
 }

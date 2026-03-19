@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +28,9 @@ public class NoticeController {
     @Autowired
     private NoticeService noticeService;
 
+    @Value("${internal.token:}")
+    private String internalToken;
+
     @PostMapping
     @Operation(summary = "发布通知", description = "管理员发布新通知")
     @Log(title = "通知公告", businessType = BusinessType.INSERT)
@@ -34,9 +38,20 @@ public class NoticeController {
         return Result.success(noticeService.createNotice(dto, userId));
     }
 
+    @PostMapping("/inner")
+    @Operation(summary = "内部发布通知", description = "内部服务调用创建通知")
+    public Result<Long> createNoticeInner(@RequestBody NoticeCreateDTO dto,
+                                          @RequestParam("userId") Long userId,
+                                          @RequestHeader(value = "X-Internal-Token", required = false) String token) {
+        if (internalToken != null && !internalToken.isEmpty() && !internalToken.equals(token)) {
+            return Result.fail("无权访问");
+        }
+        return Result.success(noticeService.createNotice(dto, userId));
+    }
+
     @GetMapping("/unread-count")
     @Operation(summary = "获取未读通知数", description = "获取当前用户的未读通知数量")
-    public Result<Long> getUnreadCount(@RequestParam("userId") Long userId) {
+    public Result<Integer> getUnreadCount(@RequestParam("userId") Long userId) {
         return Result.success(noticeService.getUnreadCount(userId));
     }
 
