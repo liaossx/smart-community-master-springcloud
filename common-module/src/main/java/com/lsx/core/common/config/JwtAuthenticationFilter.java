@@ -120,12 +120,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (role == null || role.trim().isEmpty()) {
                 authority = "ROLE_USER"; // 默认角色
             } else {
-                // 如果JWT中已经有ROLE_前缀，保持原样；否则添加
-                if (role.startsWith("ROLE_")) {
-                    authority = role;
-                } else {
-                    authority = "ROLE_" + role;
+                String normalizedRole = role.trim();
+                if (normalizedRole.startsWith("ROLE_")) {
+                    normalizedRole = normalizedRole.substring("ROLE_".length());
                 }
+                authority = "ROLE_" + normalizedRole.toUpperCase();
             }
 
             List<GrantedAuthority> authorities = Collections.singletonList(

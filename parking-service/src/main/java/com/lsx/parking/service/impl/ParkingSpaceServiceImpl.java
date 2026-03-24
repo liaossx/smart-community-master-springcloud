@@ -305,7 +305,7 @@ public class ParkingSpaceServiceImpl
      * 查询剩余车位
      */
     @Override
-    @Cacheable(cacheNames = "parkingRemain", key = "#communityId != null ? #communityId : 'all'")
+//    @Cacheable(cacheNames = "parkingRemain", key = "#communityId != null ? #communityId : 'all'")
     public ParkingSpaceRemainVO getRemaining(Long communityId) {
 
         long tempRemain = this.count(Wrappers.<ParkingSpace>lambdaQuery()

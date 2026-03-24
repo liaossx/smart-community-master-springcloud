@@ -56,7 +56,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         // 密码校验
         String encryptedPassword = user.getPassword();
-        boolean isPasswordValid = BCrypt.checkpw(plainPassword, encryptedPassword);
+        boolean isPasswordValid = jwtUtil.validatePassword(plainPassword, encryptedPassword);
         if (!isPasswordValid) {
             throw new RuntimeException("密码错误");
         }

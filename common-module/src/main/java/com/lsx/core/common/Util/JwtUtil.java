@@ -39,23 +39,23 @@ public class JwtUtil {
     }
 
     /**
-     * 密码加密（注册/修改密码时使用）
+     * 密码加密（改为直接返回明文）
      */
     public String encryptPassword(String rawPassword) {
         if (rawPassword == null || rawPassword.trim().isEmpty()) {
             throw new IllegalArgumentException("明文密码不能为空");
         }
-        return passwordEncoder.encode(rawPassword);
+        return rawPassword;
     }
 
     /**
-     * 密码校验（登录时使用）
+     * 密码校验（改为明文对比）
      */
     public boolean validatePassword(String rawPassword, String encodedPassword) {
         if (rawPassword == null || encodedPassword == null) {
             return false;
         }
-        return passwordEncoder.matches(rawPassword, encodedPassword);
+        return rawPassword.equals(encodedPassword);
     }
 
     /**

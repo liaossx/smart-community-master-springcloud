@@ -133,7 +133,7 @@ public class UserController {
         if (user == null) {
             return Result.fail("用户不存在");
         }
-        boolean ok = BCrypt.checkpw(oldPwd, user.getPassword());
+        boolean ok = jwtUtil.validatePassword(oldPwd, user.getPassword());
         if (!ok) {
             return Result.fail("旧密码错误");
         }
@@ -211,6 +211,28 @@ public class UserController {
     public String getRealNameById(@PathVariable("id") Long id) {
         User user = userService.getById(id);
         return user != null ? user.getRealName() : null;
+    }
+
+    @Operation(summary = "测试专用：批量生成压测Token")
+    @GetMapping("/test/generateTokens")
+    public Result<String> generateTokens() {
+        try {
+            java.io.File file = new java.io.File("D:\\jmeter_tokens.csv");
+            java.io.FileWriter writer = new java.io.FileWriter(file);
+            
+            // 批量生成 2000 个测试用户 Token
+            for (long i = 10000; i < 12000; i++) {
+                // 生成 Token：userId=i, username="test"+i, role="OWNER", communityId=1L
+                String token = jwtUtil.generateToken(i, "test" + i, "OWNER", 1L);
+                
+                // 写入 CSV 文件，格式：userId,token
+                writer.write(i + "," + token + "\n");
+            }
+            writer.close();
+            return Result.success("成功生成2000个测试用户及Token，保存在 D:\\jmeter_tokens.csv");
+        } catch (java.io.IOException e) {
+            return Result.fail("生成失败：" + e.getMessage());
+        }
     }
 }
 

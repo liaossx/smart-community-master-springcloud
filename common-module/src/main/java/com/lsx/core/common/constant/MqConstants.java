@@ -31,4 +31,18 @@ public class MqConstants {
      * 操作日志路由键
      */
     public static final String OPER_LOG_ROUTING_KEY = "operlog.add";
+    /**
+     * 活动交换机
+     */
+    public static final String ACTIVITY_EXCHANGE = "smart.activity.exchange";
+
+    /**
+     * 活动报名队列
+     */
+    public static final String ACTIVITY_SIGNUP_QUEUE = "smart.activity.signup.queue";
+
+    /**
+     * 活动报名路由键
+     */
+    public static final String ACTIVITY_SIGNUP_ROUTING_KEY = "activity.signup";
 }

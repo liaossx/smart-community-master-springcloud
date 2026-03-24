@@ -20,7 +20,8 @@ public class ParkingOrderTimeoutTask {
 
     private static final long TIMEOUT_MINUTES = 15;
 
-    @Scheduled(cron = "0 * * * * ?")
+    // TODO: 为了演示“改造前”数据，临时关闭定时任务
+    // @Scheduled(cron = "0 * * * * ?")
     public void cancelUnpaidOrders() {
 
         log.info("【定时任务】开始扫描超时未支付订单");
