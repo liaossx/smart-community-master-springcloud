@@ -44,6 +44,7 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
     public Long createNotice(NoticeCreateDTO dto, Long userId) {
         SysNotice notice = new SysNotice();
         BeanUtils.copyProperties(dto, notice);
+        notice.setTargetBuilding(dto.getBuildingNo());
         notice.setCreatorId(userId);
         notice.setCreateTime(LocalDateTime.now());
         notice.setUpdateTime(LocalDateTime.now());
@@ -147,7 +148,7 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
                 .and(w -> w
                         .eq("target_type", "ALL")
                         .or(!communityNames.isEmpty(), c -> c.eq("target_type", "COMMUNITY").in("community_name", communityNames))
-                        .or(!buildingNos.isEmpty(), b -> b.eq("target_type", "BUILDING").in("building_no", buildingNos))
+                        .or(!buildingNos.isEmpty(), b -> b.eq("target_type", "BUILDING").in("target_building", buildingNos))
                         .or(u -> u.eq("target_type", "USER").eq("target_user_id", userId))
                 )
                 // 排除已过期的
@@ -239,11 +240,13 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
     public Boolean updateNotice(Long id, NoticeCreateDTO dto) {
         SysNotice notice = noticeMapper.selectById(id);
         if (notice == null) return false;
-        
+
+        String beforeStatus = notice.getPublishStatus();
         BeanUtils.copyProperties(dto, notice);
+        notice.setTargetBuilding(dto.getBuildingNo());
         notice.setUpdateTime(LocalDateTime.now());
-        
-        if ("PUBLISHED".equalsIgnoreCase(dto.getPublishStatus()) && !"PUBLISHED".equalsIgnoreCase(notice.getPublishStatus())) {
+
+        if ("PUBLISHED".equalsIgnoreCase(dto.getPublishStatus()) && !"PUBLISHED".equalsIgnoreCase(beforeStatus)) {
             notice.setPublishTime(LocalDateTime.now());
         }
         

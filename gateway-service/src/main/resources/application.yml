@@ -38,7 +38,7 @@ spring:
             - Path=/api/user/**, /api/admin/user/**
           filters:
             - RewritePath=/api/user/(?<segment>v3/api-docs), /$\{segment}
-            
+
         # 房屋服务路由
         - id: house-service
           uri: lb://house-service

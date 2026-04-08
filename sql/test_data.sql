@@ -1,5 +1,5 @@
 -- 1. 确保已有社区数据
-INSERT INTO sys_community (id, name, address, contact, phone) VALUES 
+INSERT INTO sys_community (id, name, address, linkman, phone) VALUES 
 (1, '幸福小区', '幸福路1号', '张三', '13800000001'),
 (2, '阳光小区', '阳光路88号', '李四', '13800000002')
 ON DUPLICATE KEY UPDATE name=VALUES(name);

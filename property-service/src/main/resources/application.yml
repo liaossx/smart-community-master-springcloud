@@ -25,3 +25,18 @@ knife4j:
 jwt:
   secret: "mySecretKeyForJWTGenerationInSmartCommunitySystem2024"
   expiration: 86400000
+
+
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://192.168.10.101:3306/smart_community_test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 1234
+    hikari:
+      maximum-pool-size: 50 # 必须加上这个，解决连接池干涸
+  redis:
+    host: 192.168.10.101 # 必须加上这个，解决 localhost 报错
+    port: 6379
+    password: 1234 # 如果没密码就删掉或留空

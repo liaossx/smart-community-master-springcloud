@@ -16,3 +16,4 @@ public class NoticeCreateDTO {
     private Boolean topFlag = false;
     private LocalDateTime expireTime;
 }
+ 

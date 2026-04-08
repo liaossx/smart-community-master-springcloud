@@ -52,6 +52,15 @@ public class NoticeController {
     @GetMapping("/unread-count")
     @Operation(summary = "获取未读通知数", description = "获取当前用户的未读通知数量")
     public Result<Integer> getUnreadCount(@RequestParam("userId") Long userId) {
+        String role = UserContext.getRole();
+        boolean isOwner = role != null && role.toUpperCase().contains("OWNER");
+        if (isOwner) {
+            Long currentUserId = UserContext.getCurrentUserId();
+            if (currentUserId == null) {
+                return Result.fail("Token无效或已过期");
+            }
+            userId = currentUserId;
+        }
         return Result.success(noticeService.getUnreadCount(userId));
     }
 
@@ -102,12 +111,30 @@ public class NoticeController {
             @RequestParam("userId") Long userId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
+        String role = UserContext.getRole();
+        boolean isOwner = role != null && role.toUpperCase().contains("OWNER");
+        if (isOwner) {
+            Long currentUserId = UserContext.getCurrentUserId();
+            if (currentUserId == null) {
+                return Result.fail("Token无效或已过期");
+            }
+            userId = currentUserId;
+        }
         return Result.success(noticeService.getUserNotices(userId, pageNum, pageSize));
     }
 
     @PostMapping("/{id}/read")
     @Operation(summary = "标记已读", description = "用户标记通知为已读")
     public Result<Boolean> readNotice(@PathVariable("id") Long id, @RequestParam("userId") Long userId) {
+        String role = UserContext.getRole();
+        boolean isOwner = role != null && role.toUpperCase().contains("OWNER");
+        if (isOwner) {
+            Long currentUserId = UserContext.getCurrentUserId();
+            if (currentUserId == null) {
+                return Result.fail("Token无效或已过期");
+            }
+            userId = currentUserId;
+        }
         return Result.success(noticeService.readNotice(id, userId));
     }
     

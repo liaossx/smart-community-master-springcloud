@@ -32,6 +32,12 @@ public class SysConfigController {
         return Result.success(configService.list());
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "获取配置详情")
+    public Result<SysConfig> getById(@PathVariable("id") Long id) {
+        return Result.success(configService.getById(id));
+    }
+
     @PostMapping
     @Operation(summary = "新增配置")
     public Result<Boolean> add(@RequestBody SysConfig config) {
@@ -42,5 +48,11 @@ public class SysConfigController {
     @Operation(summary = "修改配置")
     public Result<Boolean> update(@RequestBody SysConfig config) {
         return Result.success(configService.updateById(config));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除配置")
+    public Result<Boolean> delete(@PathVariable("id") Long id) {
+        return Result.success(configService.removeById(id));
     }
 }

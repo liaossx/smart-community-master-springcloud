@@ -1,77 +1,67 @@
-spring: 
-   datasource: 
-     driver-class-name: com.mysql.cj.jdbc.Driver 
-     # 数据库连接，默认指向 smart_community 
-     url: jdbc:mysql://192.168.10.101:3306/smart_community_test?useUnicode=true&characterEncoding=utf-8&serverTimezone=GMT%2B8&useSSL=false 
-     username: root 
-     password: ${MYSQL_PASSWORD:1234} 
-     hikari: 
-       # 连接池中允许的最大连接数（建议根据你的 JMeter 并发数调整，如 50-100） 
-       maximum-pool-size: 50 
-       # 连接池中维护的最小空闲连接数 
-       minimum-idle: 10 
-       # 等待连接池分配连接的最大时长（毫秒），超过此时间报错超时 
-       connection-timeout: 30000 
-       # 一个连接在池中闲置的最大时长 
-       idle-timeout: 600000 
-       # 一个连接在池中的最大存活时长 
-       max-lifetime: 1800000 
-       # 用于测试连接是否有效的 SQL 
-       connection-test-query: SELECT 1 
-   redis: 
-     host: 192.168.10.101 
-     port: 6379 
-     password: ${REDIS_PASSWORD:1234} 
-     timeout: 10000 
-     database: 0 
-     lettuce: 
-       pool: 
-         max-active: 8 
-         max-idle: 8 
-         min-idle: 0 
-         max-wait: 3000ms 
-   cloud: 
-     sentinel: 
-       transport: 
-         dashboard: 192.168.10.101:8858 
-         port: 8719 
-       eager: true 
- 
- mybatis-plus: 
-   # 修正包名路径：指向各模块下的 mapper XML 
-   mapper-locations: classpath*:com/lsx/*/mapper/*.xml 
-   # 修正实体包名：去掉多余的 core 
-   type-aliases-package: com.lsx.user.entity,com.lsx.house.entity,com.lsx.workorder.repair.entity,com.lsx.system.entity,com.lsx.property.property.entity,com.lsx.community.activity.entity 
-   configuration: 
-     map-underscore-to-camel-case: true 
-     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl 
- 
- logging: 
-   level: 
-     root: info 
-     # 修正包名：com.sky -> com.lsx 
-     com.lsx: debug 
-     com.lsx.core.mapper: debug 
- 
- knife4j: 
-   enable: true 
-   setting: 
-     language: zh-CN 
-   openapi: 
-     title: 智慧社区管理系统 API 
-     description: 基于 Spring Cloud Alibaba 的智慧社区微服务系统 
-     version: 1.0 
-     contact: 
-       name: lsx 
-       email: 2428513271@qq.com 
- 
- jwt: 
-   secret: "mySecretKeyForJWTGenerationInSmartCommunitySystem2024" 
-   expiration: 86400000 
- 
- internal: 
-   token: ${INTERNAL_TOKEN:dev-internal-token} 
- 
- mock: 
-   payment: 
-     enabled: ${MOCK_PAYMENT_ENABLED:false} 
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:192.168.10.101}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:smart_community}?useUnicode=true&characterEncoding=utf-8&serverTimezone=GMT%2B8&useSSL=false
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:1234}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
+  redis:
+    host: ${REDIS_HOST:192.168.10.101}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:1234}
+    timeout: 10000
+    database: 0
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: 3000ms
+  cloud:
+    sentinel:
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD:192.168.10.101:8858}
+        port: 8719
+      eager: true
+
+mybatis-plus:
+  mapper-locations: classpath*:com/lsx/*/mapper/*.xml
+  type-aliases-package: com.lsx.user.entity,com.lsx.house.entity,com.lsx.workorder.repair.entity,com.lsx.system.entity,com.lsx.property.property.entity,com.lsx.community.activity.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    root: info
+    com.lsx: debug
+    com.lsx.core.mapper: debug
+
+knife4j:
+  enable: true
+  setting:
+    language: zh-CN
+  openapi:
+    title: 智慧社区管理系统 API
+    description: 基于 Spring Cloud Alibaba 的智慧社区微服务系统
+    version: 1.0
+    contact:
+      name: lsx
+      email: 2428513271@qq.com
+
+jwt:
+  secret: ${JWT_SECRET:mySecretKeyForJWTGenerationInSmartCommunitySystem2024}
+  expiration: 86400000
+
+internal:
+  token: ${INTERNAL_TOKEN:dev-internal-token}
+
+mock:
+  payment:
+    enabled: ${MOCK_PAYMENT_ENABLED:false}

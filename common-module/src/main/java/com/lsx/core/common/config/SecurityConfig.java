@@ -115,7 +115,7 @@ public class SecurityConfig {
                         .antMatchers("/api/activity/join").hasRole("OWNER")
                         .antMatchers("/api/vehicle/bind").hasRole("OWNER")
                         .antMatchers("/api/workorder/worker/**").hasRole("WORKER") // 维修员操作
-                        .antMatchers("/api/notice/list", "/api/notice/user/list", "/api/notice/unread-count", "/api/notice/*/read").hasRole("OWNER") // 业主可查看公告
+                        .antMatchers("/api/notice/list", "/api/notice/user/list", "/api/notice/unread-count", "/api/notice/*/read").hasAnyRole("OWNER", "ADMIN", "SUPER_ADMIN") // 公告读取：业主与管理员均可访问（控制器内会按角色处理）
 
                         /* ===== 普通业主（OWNER）可访问 ===== ⭐ 后配置通用路径 */
                         .antMatchers("/api/repair/**").hasRole("OWNER")  // ⭐ 放在后面！
