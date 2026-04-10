@@ -13,4 +13,5 @@ public class UserInfoDTO {
     private String room;          // 房屋号（如"1栋101"，来自sys_house）
     private String role;          // 用户角色
     private String phone;
+    private Long communityId;
 }

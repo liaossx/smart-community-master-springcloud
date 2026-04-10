@@ -43,7 +43,7 @@ spring:
         - id: house-service
           uri: lb://house-service
           predicates:
-            - Path=/api/house/**
+            - Path=/api/house/**, /api/admin/house/**
           filters:
             - RewritePath=/api/house/(?<segment>v3/api-docs), /$\{segment}
 

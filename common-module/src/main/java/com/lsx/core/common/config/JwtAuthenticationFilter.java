@@ -39,7 +39,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/META-INF.resources/**",
             "/api/user/login",
             "/api/user/register",
-            "/api/common/**"
+            "/api/common/**",
+            "/api/user/inner/**",
+            "/api/notice/inner/**",
+            "/api/system/config/inner/**",
+            "/api/house/info",
+            "/api/house/community/*/name",
+            "/api/house/list/ids",
+            "/api/fee/pay/callback",
+            "/api/fee/pay/callback/mock",
+            "/api/parking/pay/callback",
+            "/api/parking/pay/success"
     );
 
     public JwtAuthenticationFilter(JwtUtil jwtUtil) {

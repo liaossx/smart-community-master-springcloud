@@ -9,6 +9,7 @@ import com.lsx.property.notice.dto.BatchNoticeExpireDTO;
 import com.lsx.property.notice.dto.ExpiringNoticeDTO;
 import com.lsx.property.notice.dto.NoticeCreateDTO;
 import com.lsx.property.notice.dto.NoticeDTO;
+import com.lsx.property.notice.support.ConfigHelper;
 import com.lsx.property.notice.entity.SysNotice;
 import com.lsx.property.notice.service.NoticeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -27,6 +29,8 @@ public class NoticeController {
 
     @Autowired
     private NoticeService noticeService;
+    @Autowired
+    private ConfigHelper configHelper;
 
     @Value("${internal.token:}")
     private String internalToken;
@@ -35,6 +39,10 @@ public class NoticeController {
     @Operation(summary = "发布通知", description = "管理员发布新通知")
     @Log(title = "通知公告", businessType = BusinessType.INSERT)
     public Result<Long> createNotice(@RequestBody NoticeCreateDTO dto, @RequestParam("userId") Long userId) {
+        Result<?> check = validateAndNormalize(dto);
+        if (check != null) {
+            return (Result<Long>) check;
+        }
         return Result.success(noticeService.createNotice(dto, userId));
     }
 
@@ -45,6 +53,10 @@ public class NoticeController {
                                           @RequestHeader(value = "X-Internal-Token", required = false) String token) {
         if (internalToken != null && !internalToken.isEmpty() && !internalToken.equals(token)) {
             return Result.fail("无权访问");
+        }
+        Result<?> check = validateAndNormalize(dto);
+        if (check != null) {
+            return (Result<Long>) check;
         }
         return Result.success(noticeService.createNotice(dto, userId));
     }
@@ -75,6 +87,10 @@ public class NoticeController {
     @Operation(summary = "修改通知", description = "管理员修改通知内容")
     @Log(title = "通知公告", businessType = BusinessType.UPDATE)
     public Result<Boolean> updateNotice(@PathVariable("id") Long id, @RequestBody NoticeCreateDTO dto) {
+        Result<?> check = validateAndNormalize(dto);
+        if (check != null) {
+            return (Result<Boolean>) check;
+        }
         return Result.success(noticeService.updateNotice(id, dto));
     }
 
@@ -92,6 +108,7 @@ public class NoticeController {
             @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
+        pageSize = clampPageSize(pageSize);
         String role = UserContext.getRole();
         boolean isOwner = role != null && role.toUpperCase().contains("OWNER");
         if (isOwner) {
@@ -111,6 +128,7 @@ public class NoticeController {
             @RequestParam("userId") Long userId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
+        pageSize = clampPageSize(pageSize);
         String role = UserContext.getRole();
         boolean isOwner = role != null && role.toUpperCase().contains("OWNER");
         if (isOwner) {
@@ -150,5 +168,48 @@ public class NoticeController {
     @Log(title = "通知公告", businessType = BusinessType.UPDATE)
     public Result<Boolean> batchExpire(@RequestBody BatchNoticeExpireDTO dto) {
         return Result.success(noticeService.batchExpireNotices(dto));
+    }
+
+    private Integer clampPageSize(Integer pageSize) {
+        int max = configHelper.getInt("notice.page.size.max", 50);
+        if (max <= 0) {
+            return pageSize;
+        }
+        if (pageSize == null) {
+            return Math.min(10, max);
+        }
+        return Math.min(pageSize, max);
+    }
+
+    private Result<?> validateAndNormalize(NoticeCreateDTO dto) {
+        if (dto == null) {
+            return Result.fail("参数不能为空");
+        }
+
+        int titleMax = configHelper.getInt("notice.title.length.max", 100);
+        if (titleMax > 0 && dto.getTitle() != null && dto.getTitle().length() > titleMax) {
+            return Result.fail("公告标题长度超过限制");
+        }
+
+        int contentMax = configHelper.getInt("notice.content.length.max", 20000);
+        if (contentMax > 0 && dto.getContent() != null && dto.getContent().length() > contentMax) {
+            return Result.fail("公告内容长度超过限制");
+        }
+
+        boolean topAllowed = configHelper.getBool("notice.top.allowed", true);
+        if (!topAllowed && Boolean.TRUE.equals(dto.getTopFlag())) {
+            dto.setTopFlag(false);
+        }
+
+        boolean expireRequired = configHelper.getBool("notice.expire.required.published", false);
+        if (expireRequired && "PUBLISHED".equalsIgnoreCase(dto.getPublishStatus()) && dto.getExpireTime() == null) {
+            int defaultDays = configHelper.getInt("notice.default.expire.days", 0);
+            if (defaultDays <= 0) {
+                return Result.fail("发布公告必须设置过期时间");
+            }
+            dto.setExpireTime(LocalDateTime.now().plusDays(defaultDays));
+        }
+
+        return null;
     }
 }

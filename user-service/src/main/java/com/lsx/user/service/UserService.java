@@ -52,5 +52,7 @@ public interface UserService extends IService<User> {
      * @param userId 用户ID
      */
     void resetPassword(Long userId, String newPassword);
+
+    boolean updateCommunityIdIfEmpty(Long userId, Long communityId);
 }
 

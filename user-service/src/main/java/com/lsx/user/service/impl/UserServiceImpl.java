@@ -2,6 +2,7 @@ package com.lsx.user.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lsx.core.common.Util.JwtUtil;
@@ -14,11 +15,14 @@ import com.lsx.user.dto.*;
 import com.lsx.user.vo.LoginResult;
 import com.lsx.user.vo.RegisterResult;
 import com.lsx.user.entity.User;
+import com.lsx.user.entity.UserRegisterRequest;
 import com.lsx.user.mapper.UserMapper;
 import com.lsx.user.service.UserService;
+import com.lsx.user.service.UserRegisterRequestService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +45,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Resource
     private HouseServiceClient houseServiceClient;
 
+    @Resource
+    private UserRegisterRequestService userRegisterRequestService;
+
     @Override
     public LoginResult login(LoginDto loginDto) {
         String username = loginDto.getUsername();
@@ -52,6 +59,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         // 2. 校验用户是否存在和密码是否正确
         if (user == null) {
+            UserRegisterRequest req = userRegisterRequestService.getOne(
+                    new LambdaQueryWrapper<UserRegisterRequest>().eq(UserRegisterRequest::getUsername, username)
+            );
+            if (req != null) {
+                String st = req.getStatus();
+                if ("PENDING".equalsIgnoreCase(st)) {
+                    throw new RuntimeException("账号审核中");
+                }
+                if ("REJECTED".equalsIgnoreCase(st)) {
+                    String reason = req.getRejectReason();
+                    throw new RuntimeException(StringUtils.hasText(reason) ? ("审核未通过：" + reason) : "审核未通过");
+                }
+                if ("APPROVED".equalsIgnoreCase(st) || "ACTIVE".equalsIgnoreCase(st)) {
+                    throw new RuntimeException("账号已通过审核，请稍后重试登录");
+                }
+            }
             throw new RuntimeException("用户不存在");
         }
         // 密码校验
@@ -88,23 +111,97 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new RuntimeException("用户名已存在");
         }
 
-        //对密码进行加密
-        registerDto.setPassword(jwtUtil.encryptPassword(registerDto.getPassword()));
-        User user = new User();
-        BeanUtil.copyProperties(registerDto, user);
-        // 设置社区ID
-        user.setCommunityId(registerDto.getCommunityId());
-        
-        user.setCreateTime(LocalDateTime.now());
-        user.setUpdateTime(LocalDateTime.now());
-        // 2. 插入用户数据
-        if (baseMapper.insert(user) <= 0) {
-            throw new RuntimeException("注册失败，请重试");
+        if (StringUtils.hasText(registerDto.getPhone())) {
+            User phoneUser = baseMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, registerDto.getPhone()));
+            if (phoneUser != null) {
+                throw new RuntimeException("手机号已存在");
+            }
         }
-        // 3. 返回注册结果
-        RegisterResult result = new RegisterResult();
-        BeanUtils.copyProperties(user, result);
 
+        UserRegisterRequest sameUsernameReq = userRegisterRequestService.getOne(
+                new LambdaQueryWrapper<UserRegisterRequest>()
+                        .eq(UserRegisterRequest::getUsername, registerDto.getUsername())
+        );
+        if (sameUsernameReq != null) {
+            String status = sameUsernameReq.getStatus();
+            if ("PENDING".equalsIgnoreCase(status)) {
+                throw new RuntimeException("该用户名已提交注册申请，请等待审核");
+            }
+            if ("APPROVED".equalsIgnoreCase(status) || "ACTIVE".equalsIgnoreCase(status)) {
+                throw new RuntimeException("该用户名注册申请已通过，请直接登录");
+            }
+        }
+
+        if (StringUtils.hasText(registerDto.getPhone())) {
+            UserRegisterRequest phoneReq = userRegisterRequestService.getOne(
+                    new LambdaQueryWrapper<UserRegisterRequest>()
+                            .eq(UserRegisterRequest::getPhone, registerDto.getPhone())
+                            .eq(UserRegisterRequest::getStatus, "PENDING")
+            );
+            if (phoneReq != null) {
+                throw new RuntimeException("该手机号已提交注册申请，请等待审核");
+            }
+        }
+
+        // 对密码进行加密
+        registerDto.setPassword(jwtUtil.encryptPassword(registerDto.getPassword()));
+
+        if ("owner".equalsIgnoreCase(role)) {
+            if (sameUsernameReq != null) {
+                throw new RuntimeException("该用户名已存在注册审核记录，请更换用户名");
+            }
+            User user = new User();
+            BeanUtil.copyProperties(registerDto, user);
+            user.setCommunityId(registerDto.getCommunityId());
+            user.setStatus(1);
+            user.setCreateTime(LocalDateTime.now());
+            user.setUpdateTime(LocalDateTime.now());
+            if (baseMapper.insert(user) <= 0) {
+                throw new RuntimeException("注册失败，请重试");
+            }
+            RegisterResult result = new RegisterResult();
+            BeanUtils.copyProperties(user, result);
+            return result;
+        }
+
+        UserRegisterRequest req;
+        if (sameUsernameReq != null && "REJECTED".equalsIgnoreCase(sameUsernameReq.getStatus())) {
+            req = sameUsernameReq;
+            req.setPassword(registerDto.getPassword());
+            req.setRealName(registerDto.getRealName());
+            req.setPhone(registerDto.getPhone());
+            req.setRole(registerDto.getRole());
+            req.setStatus("PENDING");
+            req.setCommunityId(registerDto.getCommunityId());
+            req.setApplyTime(LocalDateTime.now());
+            req.setApproveTime(null);
+            req.setApproveBy(null);
+            req.setRejectReason(null);
+            if (!userRegisterRequestService.updateById(req)) {
+                throw new RuntimeException("提交注册申请失败，请重试");
+            }
+        } else {
+            req = new UserRegisterRequest();
+            req.setUsername(registerDto.getUsername());
+            req.setPassword(registerDto.getPassword());
+            req.setRealName(registerDto.getRealName());
+            req.setPhone(registerDto.getPhone());
+            req.setRole(registerDto.getRole());
+            req.setStatus("PENDING");
+            req.setCommunityId(registerDto.getCommunityId());
+            req.setApplyTime(LocalDateTime.now());
+            if (!userRegisterRequestService.save(req)) {
+                throw new RuntimeException("提交注册申请失败，请重试");
+            }
+        }
+
+        RegisterResult result = new RegisterResult();
+        result.setId(req.getId());
+        result.setUsername(req.getUsername());
+        result.setRealName(req.getRealName());
+        result.setPhone(req.getPhone());
+        result.setRole(req.getRole());
+        result.setCreateTime(req.getApplyTime());
         return result;
 
     }
@@ -329,6 +426,34 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setPassword(jwtUtil.encryptPassword(pwd));
         user.setUpdateTime(LocalDateTime.now());
         baseMapper.updateById(user);
+    }
+
+    @Override
+    public boolean updateCommunityIdIfEmpty(Long userId, Long communityId) {
+        if (userId == null || communityId == null) {
+            return false;
+        }
+        for (int i = 0; i < 3; i++) {
+            try {
+                return baseMapper.update(null,
+                        new LambdaUpdateWrapper<User>()
+                                .set(User::getCommunityId, communityId)
+                                .eq(User::getId, userId)
+                                .and(w -> w.isNull(User::getCommunityId).or().eq(User::getCommunityId, 0))
+                ) > 0;
+            } catch (CannotAcquireLockException e) {
+                if (i == 2) {
+                    throw e;
+                }
+                try {
+                    Thread.sleep(200L * (i + 1));
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+            }
+        }
+        return false;
     }
 
 }

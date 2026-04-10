@@ -2,9 +2,13 @@ package com.lsx.house.controller.api;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lsx.house.entity.House;
+import com.lsx.house.entity.HouseBindRequest;
 import com.lsx.house.entity.UserHouse;
+import com.lsx.house.client.UserServiceClient;
+import com.lsx.house.dto.external.UserInfoDTO;
 import com.lsx.house.mapper.HouseMapper;
 import com.lsx.house.mapper.UserHouseMapper;
+import com.lsx.house.service.HouseBindRequestService;
 import com.lsx.house.service.CommunityService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +30,12 @@ public class HouseApiController {
     
     @Resource
     private CommunityService communityService;
+
+    @Resource
+    private HouseBindRequestService houseBindRequestService;
+
+    @Resource
+    private UserServiceClient userServiceClient;
 
     @GetMapping("/user/{userId}")
     public List<House> getHousesByUserId(@PathVariable("userId") Long userId) {
@@ -75,34 +85,60 @@ public class HouseApiController {
     
     @PostMapping("/bind")
     @Transactional(rollbackFor = Exception.class)
-    public Boolean bindUserToHouse(@RequestParam("userId") Long userId, @RequestParam("houseId") Long houseId) {
-        //检查房屋是否存在
+    public Boolean bindUserToHouse(
+            @RequestParam("userId") Long userId,
+            @RequestParam("houseId") Long houseId,
+            @RequestParam(value = "type", required = false) String type
+    ) {
         House house = houseMapper.selectById(houseId);
         if (house == null) {
             throw new RuntimeException("房屋不存在");
         }
-        //检查房屋是否已被其他用户绑定
         if (house.getBindStatus() != null && house.getBindStatus() == 1) {
             throw new RuntimeException("该房屋已被其他用户绑定");
         }
 
-        //检查当前用户是否已绑定该房屋
-        Long count = userHouseMapper.selectCount(new LambdaQueryWrapper<UserHouse>()
+        Long approvedCount = userHouseMapper.selectCount(new LambdaQueryWrapper<UserHouse>()
                 .eq(UserHouse::getHouseId, houseId)
-                .eq(UserHouse::getUserId, userId));
-        if (count > 0) {
-            throw new RuntimeException("用户已绑定该房屋");
+                .in(UserHouse::getStatus, "approved", "APPROVED", "1", "审核通过"));
+        if (approvedCount != null && approvedCount > 0) {
+            house.setBindStatus(1);
+            houseMapper.updateById(house);
+            throw new RuntimeException("该房屋已被其他用户绑定");
         }
 
-        //插入数据
-        if (userHouseMapper.insertUserHouseBind(userId, houseId) <= 0) {
-            return false;
+        Long dup = houseBindRequestService.count(new LambdaQueryWrapper<HouseBindRequest>()
+                .eq(HouseBindRequest::getHouseId, houseId)
+                .eq(HouseBindRequest::getUserId, userId)
+                .eq(HouseBindRequest::getStatus, "PENDING"));
+        if (dup != null && dup > 0) {
+            throw new RuntimeException("请勿重复提交");
         }
 
-        //更新房屋绑定状态为已绑定
-        house.setBindStatus(1);
-        int updateRows = houseMapper.updateById(house);
-        return updateRows > 0;
+        Long housePending = houseBindRequestService.count(new LambdaQueryWrapper<HouseBindRequest>()
+                .eq(HouseBindRequest::getHouseId, houseId)
+                .eq(HouseBindRequest::getStatus, "PENDING"));
+        if (housePending != null && housePending > 0) {
+            throw new RuntimeException("该房屋已有待审核申请");
+        }
+
+        HouseBindRequest req = new HouseBindRequest();
+        req.setUserId(userId);
+        UserInfoDTO u = userServiceClient.getUserById(userId);
+        if (u != null) {
+            req.setUsername(u.getUsername());
+            req.setRealName(u.getName());
+            req.setPhone(u.getPhone());
+        }
+        req.setHouseId(houseId);
+        req.setCommunityId(house.getCommunityId());
+        req.setCommunityName(house.getCommunityName());
+        req.setBuildingNo(house.getBuildingNo());
+        req.setHouseNo(house.getHouseNo());
+        req.setIdentityType(type);
+        req.setStatus("PENDING");
+        req.setApplyTime(java.time.LocalDateTime.now());
+        return houseBindRequestService.save(req);
     }
     
     @GetMapping("/community/count")

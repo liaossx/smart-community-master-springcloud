@@ -14,6 +14,7 @@ import com.lsx.property.notice.entity.SysNoticeRead;
 import com.lsx.property.notice.mapper.SysNoticeMapper;
 import com.lsx.property.notice.mapper.SysNoticeReadMapper;
 import com.lsx.property.notice.service.NoticeService;
+import com.lsx.property.notice.support.ConfigHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,8 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
     private SysNoticeReadMapper noticeReadMapper;
     @Autowired
     private HouseServiceClient houseServiceClient;
+    @Autowired
+    private ConfigHelper configHelper;
 
     @Override
     @Transactional
@@ -87,6 +90,17 @@ public class NoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> i
         }
         if ("PUBLISHED".equalsIgnoreCase(notice.getPublishStatus())) {
             notice.setPublishTime(LocalDateTime.now());
+        }
+        
+        if (notice.getExpireTime() == null) {
+            int days = configHelper.getInt("notice.default.expire.days", 0);
+            if (days > 0) {
+                notice.setExpireTime(LocalDateTime.now().plusDays(days));
+            }
+        }
+        if (notice.getTopFlag() == null) {
+            boolean top = configHelper.getBool("notice.default.top", false);
+            notice.setTopFlag(top);
         }
         
         notice.setDeleted(0);

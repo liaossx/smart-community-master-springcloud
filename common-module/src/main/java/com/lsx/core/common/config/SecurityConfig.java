@@ -78,19 +78,22 @@ public class SecurityConfig {
                                 "/api/common/**",
                                 "/api/user/inner/**",
                                 "/api/notice/inner/**",
+                                "/api/system/config/inner/**",
                                 "/api/fee/pay/callback",
                                 "/api/fee/pay/callback/mock",
                                 "/api/parking/pay/callback",
                                 "/api/parking/pay/success",
                                 "/api/house/list/ids",
-                                "/api/house/*",
+                                "/api/house/info",
                                 "/api/house/community/*/name"
                         ).permitAll()
 
                         /* ===== 管理员（ADMIN）可访问 ===== ⭐ 先配置具体的admin路径 */
                         .antMatchers("/api/repair/admin/**", "/api/repair/stats/**").hasAnyRole("ADMIN", "SUPER_ADMIN")  // ⭐ 报修统计及管理
                         .antMatchers("/api/workorder/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN") // ⭐ 工单管理
+                        .antMatchers("/api/admin/user/register-requests/**").hasRole("SUPER_ADMIN")
                         .antMatchers("/api/admin/user/**", "/api/admin/stats/**").hasAnyRole("ADMIN", "SUPER_ADMIN") // ⭐ 用户管理及系统统计
+                        .antMatchers("/api/admin/house/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .antMatchers("/api/house/admin/**", "/api/house/community/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .antMatchers("/api/system/config/**", "/api/monitor/operlog/**").hasAnyRole("ADMIN", "SUPER_ADMIN") // 系统配置及日志
                         .antMatchers("/api/parking/order/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN") // 停车订单管理
@@ -120,6 +123,7 @@ public class SecurityConfig {
                         /* ===== 普通业主（OWNER）可访问 ===== ⭐ 后配置通用路径 */
                         .antMatchers("/api/repair/**").hasRole("OWNER")  // ⭐ 放在后面！
                         .antMatchers("/api/user/bindUserToHouse").hasRole("OWNER")
+                        .antMatchers("/api/house/bind").hasRole("OWNER")
 
                         /* ===== 其他接口需要登录 ===== */
                         .anyRequest().authenticated()

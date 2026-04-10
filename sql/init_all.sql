@@ -16,6 +16,24 @@ CREATE TABLE IF NOT EXISTS sys_user (
   INDEX idx_community (community_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
+-- 1.1 用户注册申请表 sys_user_register_request
+CREATE TABLE IF NOT EXISTS sys_user_register_request (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+  username VARCHAR(64) NOT NULL UNIQUE COMMENT '用户名',
+  password VARCHAR(100) NOT NULL COMMENT '密码(加密后)',
+  real_name VARCHAR(64) COMMENT '真实姓名',
+  phone VARCHAR(20) COMMENT '手机号',
+  role VARCHAR(20) COMMENT '申请角色: owner/admin/worker/super_admin',
+  status VARCHAR(20) DEFAULT 'PENDING' COMMENT '状态: PENDING/ACTIVE/REJECTED',
+  community_id BIGINT COMMENT '归属社区ID',
+  apply_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
+  approve_time DATETIME NULL DEFAULT NULL COMMENT '审核时间',
+  approve_by BIGINT NULL DEFAULT NULL COMMENT '审核人ID',
+  reject_reason VARCHAR(255) NULL DEFAULT NULL COMMENT '驳回原因',
+  INDEX idx_status (status),
+  INDEX idx_apply_time (apply_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户注册申请表';
+
 -- 2. 社区表 sys_community
 CREATE TABLE IF NOT EXISTS sys_community (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
@@ -44,6 +62,41 @@ CREATE TABLE IF NOT EXISTS sys_house (
     INDEX idx_community (community_id),
     INDEX idx_house_info (building_no, house_no)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='房屋信息表';
+
+-- 3.1 用户-房屋绑定关系表 user_house
+CREATE TABLE IF NOT EXISTS user_house (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  house_id BIGINT NOT NULL COMMENT '房屋ID',
+  status VARCHAR(20) DEFAULT 'pending' COMMENT '状态: pending/approved/rejected',
+  create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  INDEX idx_user (user_id),
+  INDEX idx_house (house_id),
+  INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户房屋绑定关系表';
+
+-- 3.2 房屋绑定申请表 sys_house_bind_request
+CREATE TABLE IF NOT EXISTS sys_house_bind_request (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+  user_id BIGINT NOT NULL COMMENT '申请用户ID',
+  username VARCHAR(64) NULL DEFAULT NULL COMMENT '用户名(冗余)',
+  real_name VARCHAR(64) NULL DEFAULT NULL COMMENT '姓名(冗余)',
+  phone VARCHAR(20) NULL DEFAULT NULL COMMENT '手机号(冗余)',
+  house_id BIGINT NOT NULL COMMENT '房屋ID',
+  community_id BIGINT NULL DEFAULT NULL COMMENT '社区ID',
+  community_name VARCHAR(100) NULL DEFAULT NULL COMMENT '社区名称(冗余)',
+  building_no VARCHAR(32) NULL DEFAULT NULL COMMENT '楼栋号(冗余)',
+  house_no VARCHAR(32) NULL DEFAULT NULL COMMENT '房号(冗余)',
+  identity_type VARCHAR(20) NULL DEFAULT NULL COMMENT '身份类型: OWNER/FAMILY/TENANT',
+  status VARCHAR(20) DEFAULT 'PENDING' COMMENT '状态: PENDING/APPROVED/REJECTED',
+  apply_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
+  approve_time DATETIME NULL DEFAULT NULL COMMENT '审核时间',
+  approve_by BIGINT NULL DEFAULT NULL COMMENT '审核人ID',
+  reject_reason VARCHAR(255) NULL DEFAULT NULL COMMENT '驳回原因',
+  INDEX idx_house_status (house_id, status),
+  INDEX idx_community_status (community_id, status),
+  INDEX idx_apply_time (apply_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='房屋绑定申请表';
 
 -- 4. 报修表 biz_repair
 CREATE TABLE IF NOT EXISTS biz_repair (

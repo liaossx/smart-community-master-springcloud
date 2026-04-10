@@ -18,6 +18,7 @@ import com.lsx.user.service.UserService;
 import com.lsx.user.vo.RegisterResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -43,6 +44,9 @@ public class UserController {
     
     @Resource  // 添加这个注入
     private JwtUtil jwtUtil;  // 确保JwtUtil类有@Component注解
+
+    @Value("${internal.token:}")
+    private String internalToken;
 
     @Operation(summary = "用户登录")
     @PostMapping("/login")
@@ -177,7 +181,24 @@ public class UserController {
         dto.setName(user.getRealName());
         dto.setPhone(user.getPhone());
         dto.setRole(user.getRole());
+        dto.setCommunityId(user.getCommunityId());
         return dto;
+    }
+
+    @PutMapping("/inner/{id}/community")
+    public Result<Boolean> updateUserCommunityId(
+            @PathVariable("id") Long id,
+            @RequestParam("communityId") Long communityId,
+            @RequestHeader(value = "X-Internal-Token", required = false) String token
+    ) {
+        if (internalToken != null && !internalToken.isEmpty() && !internalToken.equals(token)) {
+            return Result.fail("无权访问");
+        }
+        try {
+            return Result.success(userService.updateCommunityIdIfEmpty(id, communityId));
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
     }
 
     @GetMapping("/inner/list/role")

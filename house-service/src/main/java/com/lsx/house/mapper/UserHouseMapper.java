@@ -17,4 +17,7 @@ public interface UserHouseMapper extends BaseMapper<UserHouse> {
 
     @Insert("INSERT INTO user_house (user_id, house_id, status, create_time) VALUES (#{userId}, #{houseId}, 'pending', NOW())")
     int insertUserHouseBind(@Param("userId") Long userId, @Param("houseId") Long houseId);
+
+    @Insert("INSERT INTO user_house (user_id, house_id, status, create_time) VALUES (#{userId}, #{houseId}, 'approved', NOW())")
+    int insertUserHouseApproved(@Param("userId") Long userId, @Param("houseId") Long houseId);
 }

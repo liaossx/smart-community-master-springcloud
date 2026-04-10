@@ -4,10 +4,17 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lsx.core.common.Result.Result;
 import com.lsx.core.common.annotation.Log;
+import com.lsx.core.common.Util.UserContext;
 import com.lsx.core.common.enums.BusinessType;
 import com.lsx.user.dto.AdminUpdateUserDTO;
+import com.lsx.user.dto.RegisterRequestApproveDTO;
+import com.lsx.user.dto.RegisterRequestDTO;
+import com.lsx.user.dto.RegisterRequestDetailDTO;
+import com.lsx.user.dto.RegisterRequestRejectDTO;
 import com.lsx.user.dto.UserDTO;
 import com.lsx.user.dto.UserDetailDTO;
+import com.lsx.user.entity.UserRegisterRequest;
+import com.lsx.user.service.UserRegisterRequestService;
 import com.lsx.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +33,9 @@ public class AdminUserController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private UserRegisterRequestService userRegisterRequestService;
 
     @Operation(summary = "分页获取用户列表")
     @GetMapping("/list")
@@ -105,6 +115,87 @@ public class AdminUserController {
         result.setMsg("success");
         result.setData(null);
         return result;
+    }
+
+    @Operation(summary = "获取注册申请列表（分页）")
+    @GetMapping("/register-requests")
+    public Result<Page<RegisterRequestDTO>> listRegisterRequests(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String role
+    ) {
+        Page<UserRegisterRequest> page = userRegisterRequestService.pageRequests(pageNum, pageSize, keyword, status, role);
+        Page<RegisterRequestDTO> out = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        List<RegisterRequestDTO> records = new ArrayList<>();
+        for (UserRegisterRequest r : page.getRecords()) {
+            RegisterRequestDTO dto = new RegisterRequestDTO();
+            dto.setId(r.getId());
+            dto.setUsername(r.getUsername());
+            dto.setPhone(r.getPhone());
+            dto.setRealName(r.getRealName());
+            dto.setRole(r.getRole());
+            dto.setStatus(r.getStatus());
+            dto.setApplyTime(r.getApplyTime());
+            records.add(dto);
+        }
+        out.setRecords(records);
+        return Result.success(out);
+    }
+
+    @Operation(summary = "获取注册申请详情")
+    @GetMapping("/register-requests/{id}")
+    public Result<RegisterRequestDetailDTO> getRegisterRequest(@PathVariable("id") Long id) {
+        UserRegisterRequest r = userRegisterRequestService.getById(id);
+        if (r == null) {
+            return Result.fail("注册申请不存在");
+        }
+        RegisterRequestDetailDTO dto = new RegisterRequestDetailDTO();
+        dto.setId(r.getId());
+        dto.setUsername(r.getUsername());
+        dto.setPhone(r.getPhone());
+        dto.setRealName(r.getRealName());
+        dto.setRole(r.getRole());
+        dto.setStatus(r.getStatus());
+        dto.setCommunityId(r.getCommunityId());
+        dto.setApplyTime(r.getApplyTime());
+        dto.setApproveTime(r.getApproveTime());
+        dto.setApproveBy(r.getApproveBy());
+        dto.setRejectReason(r.getRejectReason());
+        return Result.success(dto);
+    }
+
+    @Operation(summary = "审核通过")
+    @PutMapping("/register-requests/{id}/approve")
+    @Log(title = "注册审核", businessType = BusinessType.UPDATE)
+    public Result<Boolean> approveRegisterRequest(@PathVariable("id") Long id, @RequestBody(required = false) RegisterRequestApproveDTO body) {
+        try {
+            Long adminId = UserContext.getCurrentUserId();
+            if (adminId == null) {
+                return Result.fail("未登录");
+            }
+            String role = body != null ? body.getRole() : null;
+            return Result.success(userRegisterRequestService.approve(id, role, adminId));
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
+    }
+
+    @Operation(summary = "驳回")
+    @PutMapping("/register-requests/{id}/reject")
+    @Log(title = "注册审核", businessType = BusinessType.UPDATE)
+    public Result<Boolean> rejectRegisterRequest(@PathVariable("id") Long id, @RequestBody RegisterRequestRejectDTO body) {
+        try {
+            Long adminId = UserContext.getCurrentUserId();
+            if (adminId == null) {
+                return Result.fail("未登录");
+            }
+            String reason = body != null ? body.getReason() : null;
+            return Result.success(userRegisterRequestService.reject(id, reason, adminId));
+        } catch (RuntimeException e) {
+            return Result.fail(e.getMessage());
+        }
     }
 }
 
