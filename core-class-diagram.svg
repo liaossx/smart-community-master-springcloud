@@ -1,0 +1,287 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1020" viewBox="0 0 1500 1020" font-family="Arial, sans-serif" font-size="11">
+  <defs>
+    <marker id="open-arrow" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <polyline points="0 0, 11 4, 0 8" fill="none" stroke="black" stroke-width="1.5"/>
+    </marker>
+    <marker id="dep-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polyline points="0 0, 9 3.5, 0 7" fill="none" stroke="black" stroke-width="1.3"/>
+    </marker>
+  </defs>
+
+  <rect width="1500" height="1020" fill="white"/>
+  <text x="750" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="black">智慧社区系统 — 核心业务类图</text>
+
+  <!-- ============================================================ -->
+  <!-- PACKAGE: user-service  x=20 y=48 w=300 h=530               -->
+  <!-- ============================================================ -->
+  <rect x="20" y="48" width="300" height="530" fill="none" stroke="black" stroke-width="1.8" stroke-dasharray="8,4"/>
+  <text x="170" y="64" text-anchor="middle" font-size="12" font-weight="bold">«user-service»</text>
+
+  <!-- User -->
+  <rect x="40" y="72" width="260" height="22" fill="#333333"/>
+  <text x="170" y="87" text-anchor="middle" font-size="12" font-weight="bold" fill="white">User</text>
+  <rect x="40" y="94" width="260" height="154" fill="white" stroke="black" stroke-width="1.4"/>
+  <text x="50" y="109">userId : Long</text>
+  <text x="50" y="125">username : String</text>
+  <text x="50" y="141">phone : String</text>
+  <text x="50" y="157">realName : String</text>
+  <text x="50" y="173">role : String  (owner / admin / worker / super_admin)</text>
+  <text x="50" y="189">status : Integer</text>
+  <text x="50" y="205">communityId : Long</text>
+  <text x="50" y="221">password : String</text>
+
+  <!-- UserRegisterRequest -->
+  <rect x="40" y="270" width="260" height="22" fill="#333333"/>
+  <text x="170" y="285" text-anchor="middle" font-size="11" font-weight="bold" fill="white">UserRegisterRequest</text>
+  <rect x="40" y="292" width="260" height="176" fill="white" stroke="black" stroke-width="1.4"/>
+  <text x="50" y="307">id : Long</text>
+  <text x="50" y="323">username : String</text>
+  <text x="50" y="339">phone : String</text>
+  <text x="50" y="355">role : String</text>
+  <text x="50" y="371">status : String  (PENDING / APPROVED / REJECTED)</text>
+  <text x="50" y="387">applyTime : DateTime</text>
+  <text x="50" y="403">approveBy : Long</text>
+  <text x="50" y="419">approveTime : DateTime</text>
+  <text x="50" y="435">rejectReason : String</text>
+
+  <!-- ============================================================ -->
+  <!-- PACKAGE: house-service  x=340 y=48 w=310 h=730             -->
+  <!-- ============================================================ -->
+  <rect x="340" y="48" width="310" height="730" fill="none" stroke="black" stroke-width="1.8" stroke-dasharray="8,4"/>
+  <text x="495" y="64" text-anchor="middle" font-size="12" font-weight="bold">«house-service»</text>
+
+  <!-- House -->
+  <rect x="360" y="72" width="270" height="22" fill="#333333"/>
+  <text x="495" y="87" text-anchor="middle" font-size="12" font-weight="bold" fill="white">House</text>
+  <rect x="360" y="94" width="270" height="154" fill="white" stroke="black" stroke-width="1.4"/>
+  <text x="370" y="109">id : Long</text>
+  <text x="370" y="125">communityId : Long</text>
+  <text x="370" y="141">communityName : String</text>
+  <text x="370" y="157">buildingNo : String</text>
+  <text x="370" y="173">houseNo : String</text>
+  <text x="370" y="189">bindStatus : Integer  (0=未绑定  1=已绑定)</text>
+  <text x="370" y="205">area : BigDecimal</text>
+
+  <!-- HouseBindRequest -->
+  <rect x="360" y="270" width="270" height="22" fill="#333333"/>
+  <text x="495" y="285" text-anchor="middle" font-size="12" font-weight="bold" fill="white">HouseBindRequest</text>
+  <rect x="360" y="292" width="270" height="242" fill="white" stroke="black" stroke-width="1.4"/>
+  <text x="370" y="307">id : Long</text>
+  <text x="370" y="323">userId : Long</text>
+  <text x="370" y="339">houseId : Long</text>
+  <text x="370" y="355">communityId : Long</text>
+  <text x="370" y="371">buildingNo : String</text>
+  <text x="370" y="387">houseNo : String</text>
+  <text x="370" y="403">identityType : String</text>
+  <text x="370" y="419">status : String  (PENDING / APPROVED / REJECTED)</text>
+  <text x="370" y="435">applyTime : DateTime</text>
+  <text x="370" y="451">approveBy : Long</text>
+  <text x="370" y="467">approveTime : DateTime</text>
+  <text x="370" y="483">rejectReason : String</text>
+  <text x="370" y="499">communityName : String</text>
+
+  <!-- UserHouse -->
+  <rect x="360" y="556" width="270" height="22" fill="#333333"/>
+  <text x="495" y="571" text-anchor="middle" font-size="12" font-weight="bold" fill="white">UserHouse</text>
+  <rect x="360" y="578" width="270" height="110" fill="white" stroke="black" stroke-width="1.4"/>
+  <text x="370" y="593">id : Long</text>
+  <text x="370" y="609">userId : Long</text>
+  <text x="370" y="625">houseId : Long</text>
+  <text x="370" y="641">status : String</text>
+  <text x="370" y="657">bindTime : DateTime</text>
+
+  <!-- ============================================================ -->
+  <!-- PACKAGE: property-service  x=670 y=48 w=310 h=530          -->
+  <!-- ============================================================ -->
+  <rect x="670" y="48" width="310" height="530" fill="none" stroke="black" stroke-width="1.8" stroke-dasharray="8,4"/>
+  <text x="825" y="64" text-anchor="middle" font-size="12" font-weight="bold">«property-service»</text>
+
+  <!-- Notice -->
+  <rect x="690" y="72" width="270" height="22" fill="#333333"/>
+  <text x="825" y="87" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Notice</text>
+  <rect x="690" y="94" width="270" height="242" fill="white" stroke="black" stroke-width="1.4"/>
+  <text x="700" y="109">id : Long</text>
+  <text x="700" y="125">communityId : Long</text>
+  <text x="700" y="141">title : String</text>
+  <text x="700" y="157">content : String</text>
+  <text x="700" y="173">publishStatus : String  (DRAFT / PUBLISHED)</text>
+  <text x="700" y="189">targetType : String  (ALL / COMMUNITY / BUILDING / USER)</text>
+  <text x="700" y="205">targetBuilding : String</text>
+  <text x="700" y="221">targetUserId : Long</text>
+  <text x="700" y="237">publishTime : DateTime</text>
+  <text x="700" y="253">expireTime : DateTime</text>
+  <text x="700" y="269">topFlag : Integer</text>
+  <text x="700" y="285">communityName : String</text>
+
+  <!-- NoticeRead -->
+  <rect x="690" y="358" width="270" height="22" fill="#333333"/>
+  <text x="825" y="373" text-anchor="middle" font-size="12" font-weight="bold" fill="white">NoticeRead</text>
+  <rect x="690" y="380" width="270" height="110" fill="white" stroke="black" stroke-width="1.4"/>
+  <text x="700" y="395">id : Long</text>
+  <text x="700" y="411">noticeId : Long</text>
+  <text x="700" y="427">userId : Long</text>
+  <text x="700" y="443">status : String  (READ)</text>
+  <text x="700" y="459">readTime : DateTime</text>
+
+  <!-- ============================================================ -->
+  <!-- PACKAGE: workorder-service  x=1000 y=48 w=310 h=730        -->
+  <!-- ============================================================ -->
+  <rect x="1000" y="48" width="310" height="730" fill="none" stroke="black" stroke-width="1.8" stroke-dasharray="8,4"/>
+  <text x="1155" y="64" text-anchor="middle" font-size="12" font-weight="bold">«workorder-service»</text>
+
+  <!-- Repair -->
+  <rect x="1020" y="72" width="270" height="22" fill="#333333"/>
+  <text x="1155" y="87" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Repair</text>
+  <rect x="1020" y="94" width="270" height="198" fill="white" stroke="black" stroke-width="1.4"/>
+  <text x="1030" y="109">id : Long</text>
+  <text x="1030" y="125">userId : Long</text>
+  <text x="1030" y="141">houseId : Long</text>
+  <text x="1030" y="157">communityId : Long</text>
+  <text x="1030" y="173">faultType : String</text>
+  <text x="1030" y="189">faultDesc : String</text>
+  <text x="1030" y="205">status : String  (pending / processing / completed / cancelled)</text>
+  <text x="1030" y="221">handleRemark : String</text>
+  <text x="1030" y="237">createTime : DateTime</text>
+  <text x="1030" y="253">communityId : Long</text>
+
+  <!-- WorkOrder -->
+  <rect x="1020" y="314" width="270" height="22" fill="#333333"/>
+  <text x="1155" y="329" text-anchor="middle" font-size="12" font-weight="bold" fill="white">WorkOrder</text>
+  <rect x="1020" y="336" width="270" height="286" fill="white" stroke="black" stroke-width="1.4"/>
+  <text x="1030" y="351">id : Long</text>
+  <text x="1030" y="367">repairId : Long</text>
+  <text x="1030" y="383">orderNo : String</text>
+  <text x="1030" y="399">communityId : Long</text>
+  <text x="1030" y="415">workerId : Long</text>
+  <text x="1030" y="431">workerName : String</text>
+  <text x="1030" y="447">workerPhone : String</text>
+  <text x="1030" y="463">status : String  (PENDING / ASSIGNED / PROCESSING / COMPLETED)</text>
+  <text x="1030" y="479">priority : Integer</text>
+  <text x="1030" y="495">actualStartTime : DateTime</text>
+  <text x="1030" y="511">actualEndTime : DateTime</text>
+  <text x="1030" y="527">processResult : String</text>
+  <text x="1030" y="543">processImgs : String</text>
+  <text x="1030" y="559">createTime : DateTime</text>
+  <text x="1030" y="575">updateTime : DateTime</text>
+
+  <!-- ============================================================ -->
+  <!-- PACKAGE: system-service  x=340 y=800 w=660 h=190           -->
+  <!-- ============================================================ -->
+  <rect x="340" y="800" width="660" height="190" fill="none" stroke="black" stroke-width="1.8" stroke-dasharray="8,4"/>
+  <text x="670" y="816" text-anchor="middle" font-size="12" font-weight="bold">«system-service»</text>
+
+  <!-- SysConfig -->
+  <rect x="360" y="822" width="270" height="22" fill="#333333"/>
+  <text x="495" y="837" text-anchor="middle" font-size="12" font-weight="bold" fill="white">SysConfig</text>
+  <rect x="360" y="844" width="270" height="132" fill="white" stroke="black" stroke-width="1.4"/>
+  <text x="370" y="859">id : Long</text>
+  <text x="370" y="875">configKey : String</text>
+  <text x="370" y="891">configValue : String</text>
+  <text x="370" y="907">status : Integer</text>
+  <text x="370" y="923">remark : String</text>
+  <text x="370" y="939">updateTime : DateTime</text>
+
+  <!-- ConfigRegistry -->
+  <rect x="680" y="822" width="300" height="22" fill="#333333"/>
+  <text x="830" y="837" text-anchor="middle" font-size="12" font-weight="bold" fill="white">ConfigRegistry</text>
+  <rect x="680" y="844" width="300" height="132" fill="white" stroke="black" stroke-width="1.4"/>
+  <text x="690" y="859">configKey : String</text>
+  <text x="690" y="875">description : String</text>
+  <text x="690" y="891">defaultValue : String</text>
+  <text x="690" y="907">scope : String</text>
+  <text x="690" y="923">effectiveModule : String</text>
+
+  <!-- ============================================================ -->
+  <!-- RELATIONSHIPS                                                 -->
+  <!-- ============================================================ -->
+
+  <!-- 1. User 1 ——o< 0..* HouseBindRequest -->
+  <line x1="300" y1="160" x2="360" y2="400" stroke="black" stroke-width="1.4" marker-end="url(#open-arrow)"/>
+  <text x="302" y="155" font-size="10">1</text>
+  <text x="330" y="395" font-size="10">0..*</text>
+
+  <!-- 2. House 1 ——o< 0..* HouseBindRequest (vertical inside house-service) -->
+  <line x1="495" y1="248" x2="495" y2="270" stroke="black" stroke-width="1.4" marker-end="url(#open-arrow)"/>
+  <text x="498" y="262" font-size="10">1</text>
+  <text x="498" y="285" font-size="10">0..*</text>
+
+  <!-- 3. User 1 ——o< 0..* UserHouse -->
+  <line x1="300" y1="183" x2="360" y2="600" stroke="black" stroke-width="1.4" marker-end="url(#open-arrow)"/>
+  <text x="302" y="178" font-size="10">1</text>
+  <text x="330" y="598" font-size="10">0..*</text>
+
+  <!-- 4. House 1 ——o< 0..* UserHouse (vertical inside house-service) -->
+  <line x1="470" y1="248" x2="450" y2="556" stroke="black" stroke-width="1.4" marker-end="url(#open-arrow)"/>
+  <text x="472" y="260" font-size="10">1</text>
+  <text x="432" y="550" font-size="10">0..*</text>
+
+  <!-- 5. Notice 1 ——o< 0..* NoticeRead (vertical inside property-service) -->
+  <line x1="825" y1="336" x2="825" y2="358" stroke="black" stroke-width="1.4" marker-end="url(#open-arrow)"/>
+  <text x="828" y="350" font-size="10">1</text>
+  <text x="828" y="373" font-size="10">0..*</text>
+
+  <!-- 6. NoticeRead 0..* ——o 1 User (cross-service, route left) -->
+  <line x1="690" y1="435" x2="620" y2="435" stroke="black" stroke-width="1.4"/>
+  <line x1="620" y1="435" x2="620" y2="183" stroke="black" stroke-width="1.4"/>
+  <line x1="620" y1="183" x2="300" y2="183" stroke="black" stroke-width="1.4" marker-end="url(#open-arrow)"/>
+  <text x="692" y="430" font-size="10">0..*</text>
+  <text x="282" y="178" font-size="10">1</text>
+
+  <!-- 7. User 1 ——o< 0..* Repair (cross-service, route right then down) -->
+  <line x1="300" y1="130" x2="980" y2="130" stroke="black" stroke-width="1.4"/>
+  <line x1="980" y1="130" x2="1020" y2="160" stroke="black" stroke-width="1.4" marker-end="url(#open-arrow)"/>
+  <text x="302" y="125" font-size="10">1</text>
+  <text x="1000" y="155" font-size="10">0..*</text>
+
+  <!-- 8. House 1 ——o< 0..* Repair (cross-service) -->
+  <line x1="630" y1="160" x2="1020" y2="160" stroke="black" stroke-width="1.4" marker-end="url(#open-arrow)"/>
+  <text x="632" y="155" font-size="10">1</text>
+  <text x="990" y="155" font-size="10">0..*</text>
+
+  <!-- 9. Repair 1 ——o< 0..1 WorkOrder (vertical inside workorder-service) -->
+  <line x1="1155" y1="292" x2="1155" y2="314" stroke="black" stroke-width="1.4" marker-end="url(#open-arrow)"/>
+  <text x="1158" y="306" font-size="10">1</text>
+  <text x="1158" y="328" font-size="10">0..1</text>
+
+  <!-- 10. WorkOrder 0..* ——o 1 User(workerId) (cross-service, route left and up) -->
+  <line x1="1000" y1="450" x2="960" y2="450" stroke="black" stroke-width="1.4"/>
+  <line x1="960" y1="450" x2="960" y2="108" stroke="black" stroke-width="1.4"/>
+  <line x1="960" y1="108" x2="300" y2="108" stroke="black" stroke-width="1.4" marker-end="url(#open-arrow)"/>
+  <text x="1002" y="445" font-size="10">0..*</text>
+  <text x="282" y="103" font-size="10">1</text>
+
+  <!-- 11. SysConfig 1 ——— 1 ConfigRegistry (horizontal inside system-service) -->
+  <line x1="630" y1="910" x2="680" y2="910" stroke="black" stroke-width="1.4"/>
+  <text x="632" y="905" font-size="10">1</text>
+  <text x="660" y="905" font-size="10">1</text>
+
+  <!-- 12. «use» workorder-service → SysConfig (dashed dependency) -->
+  <line x1="1000" y1="680" x2="900" y2="800" stroke="black" stroke-width="1.2" stroke-dasharray="6,3" marker-end="url(#dep-arrow)"/>
+  <text x="930" y="745" font-size="10" font-style="italic">«use»</text>
+
+  <!-- 13. «use» property-service → SysConfig (dashed dependency) -->
+  <line x1="825" y1="578" x2="600" y2="800" stroke="black" stroke-width="1.2" stroke-dasharray="6,3" marker-end="url(#dep-arrow)"/>
+  <text x="690" y="700" font-size="10" font-style="italic">«use»</text>
+
+  <!-- ============================================================ -->
+  <!-- LEGEND                                                        -->
+  <!-- ============================================================ -->
+  <rect x="1040" y="800" width="420" height="175" fill="white" stroke="black" stroke-width="1.4"/>
+  <text x="1250" y="820" text-anchor="middle" font-size="12" font-weight="bold">图例 Legend</text>
+
+  <line x1="1060" y1="845" x2="1130" y2="845" stroke="black" stroke-width="1.4" marker-end="url(#open-arrow)"/>
+  <text x="1140" y="849" font-size="11">关联关系（实线 + 开放箭头）</text>
+
+  <line x1="1060" y1="870" x2="1130" y2="870" stroke="black" stroke-width="1.2" stroke-dasharray="6,3" marker-end="url(#dep-arrow)"/>
+  <text x="1140" y="874" font-size="11">依赖关系 «use»（虚线）</text>
+
+  <rect x="1060" y="885" width="50" height="16" fill="none" stroke="black" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="1140" y="897" font-size="11">微服务模块边界</text>
+
+  <rect x="1060" y="908" width="50" height="16" fill="#333333"/>
+  <text x="1140" y="920" font-size="11">类名（深色标题栏）</text>
+
+  <text x="1060" y="945" font-size="11">基数：1 = 一个  0..* = 零到多  0..1 = 零或一</text>
+  <text x="1060" y="962" font-size="11">箭头指向"多"端（被关联方）</text>
+
+</svg>

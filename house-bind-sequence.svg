@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="900" viewBox="0 0 1060 900"
+     font-family="Arial, sans-serif" font-size="12">
+
+  <rect width="1060" height="900" fill="white"/>
+
+  <text x="530" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="black">房屋绑定申请审核顺序图</text>
+
+  <!-- ===== Lifeline Headers ===== -->
+  <rect x="10"  y="45" width="80"  height="34" fill="white" stroke="black" stroke-width="1.5"/>
+  <text x="50"  y="67" text-anchor="middle" fill="black">业主端</text>
+
+  <rect x="110" y="45" width="80"  height="34" fill="white" stroke="black" stroke-width="1.5"/>
+  <text x="150" y="67" text-anchor="middle" fill="black">Gateway</text>
+
+  <rect x="215" y="45" width="110" height="34" fill="white" stroke="black" stroke-width="1.5"/>
+  <text x="270" y="67" text-anchor="middle" fill="black">house-service</text>
+
+  <rect x="350" y="45" width="100" height="34" fill="white" stroke="black" stroke-width="1.5"/>
+  <text x="400" y="67" text-anchor="middle" fill="black">user-service</text>
+
+  <rect x="475" y="45" width="80"  height="34" fill="white" stroke="black" stroke-width="1.5"/>
+  <text x="515" y="67" text-anchor="middle" fill="black">Database</text>
+
+  <rect x="900" y="45" width="80"  height="34" fill="white" stroke="black" stroke-width="1.5"/>
+  <text x="940" y="67" text-anchor="middle" fill="black">管理员端</text>
+
+  <!-- ===== Lifelines ===== -->
+  <line x1="50"  y1="79" x2="50"  y2="880" stroke="black" stroke-width="1" stroke-dasharray="5,4"/>
+  <line x1="150" y1="79" x2="150" y2="880" stroke="black" stroke-width="1" stroke-dasharray="5,4"/>
+  <line x1="270" y1="79" x2="270" y2="880" stroke="black" stroke-width="1" stroke-dasharray="5,4"/>
+  <line x1="400" y1="79" x2="400" y2="880" stroke="black" stroke-width="1" stroke-dasharray="5,4"/>
+  <line x1="515" y1="79" x2="515" y2="880" stroke="black" stroke-width="1" stroke-dasharray="5,4"/>
+  <line x1="940" y1="79" x2="940" y2="880" stroke="black" stroke-width="1" stroke-dasharray="5,4"/>
+
+  <!-- ===== Activation Boxes ===== -->
+  <rect x="46"  y="110" width="8" height="100" fill="white" stroke="black" stroke-width="1"/>
+  <rect x="146" y="120" width="8" height="80"  fill="white" stroke="black" stroke-width="1"/>
+  <rect x="266" y="140" width="8" height="620" fill="white" stroke="black" stroke-width="1"/>
+  <rect x="396" y="165" width="8" height="40"  fill="white" stroke="black" stroke-width="1"/>
+  <rect x="511" y="215" width="8" height="40"  fill="white" stroke="black" stroke-width="1"/>
+  <rect x="936" y="330" width="8" height="430" fill="white" stroke="black" stroke-width="1"/>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 1: 提交绑定申请                                         -->
+  <!-- ============================================================ -->
+
+  <!-- ① 业主端 → Gateway -->
+  <line x1="54" y1="120" x2="146" y2="120" stroke="black" stroke-width="1.5"/>
+  <polygon points="146,116 146,124 156,120" fill="black"/>
+  <text x="100" y="113" text-anchor="middle" fill="black" font-size="11">POST /api/house/bind?userId&amp;houseId&amp;type</text>
+
+  <!-- Gateway → house-service -->
+  <line x1="154" y1="140" x2="266" y2="140" stroke="black" stroke-width="1.5"/>
+  <polygon points="266,136 266,144 276,140" fill="black"/>
+  <text x="210" y="133" text-anchor="middle" fill="black" font-size="11">转发请求</text>
+
+  <!-- house-service → user-service Feign 获取用户信息 -->
+  <line x1="274" y1="165" x2="396" y2="165" stroke="black" stroke-width="1.5"/>
+  <polygon points="396,161 396,169 406,165" fill="black"/>
+  <text x="335" y="158" text-anchor="middle" fill="black" font-size="11">Feign: GET /api/user/inner/{userId}</text>
+
+  <!-- user-service → house-service return -->
+  <line x1="396" y1="205" x2="274" y2="205" stroke="black" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <polygon points="274,201 274,209 264,205" fill="black"/>
+  <text x="335" y="198" text-anchor="middle" fill="black" font-size="11">返回用户信息</text>
+
+  <!-- house-service 校验 + 写 DB -->
+  <line x1="274" y1="225" x2="511" y2="225" stroke="black" stroke-width="1.5"/>
+  <polygon points="511,221 511,229 521,225" fill="black"/>
+  <text x="392" y="218" text-anchor="middle" fill="black" font-size="11">校验房屋未绑定、无重复/待审申请</text>
+
+  <line x1="511" y1="255" x2="274" y2="255" stroke="black" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <polygon points="274,251 274,259 264,255" fill="black"/>
+  <text x="392" y="248" text-anchor="middle" fill="black" font-size="11">写入 HouseBindRequest（status=PENDING）</text>
+
+  <!-- Gateway → 业主端 return -->
+  <line x1="146" y1="200" x2="54" y2="200" stroke="black" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <polygon points="54,196 54,204 44,200" fill="black"/>
+  <text x="100" y="193" text-anchor="middle" fill="black" font-size="11">返回提交成功</text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 2: 管理员查询待审核列表 & 详情                           -->
+  <!-- ============================================================ -->
+
+  <!-- 分隔线 -->
+  <line x1="10" y1="278" x2="1050" y2="278" stroke="black" stroke-width="0.8" stroke-dasharray="4,3"/>
+  <text x="15" y="292" fill="black" font-size="10" font-style="italic">管理员审核阶段</text>
+
+  <!-- ② 管理员端 → house-service 查询列表 -->
+  <line x1="936" y1="305" x2="274" y2="305" stroke="black" stroke-width="1.5"/>
+  <polygon points="274,301 274,309 264,305" fill="black"/>
+  <text x="605" y="298" text-anchor="middle" fill="black" font-size="11">GET /api/admin/house/bind-requests（查询待审核列表）</text>
+
+  <line x1="274" y1="325" x2="936" y2="325" stroke="black" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <polygon points="936,321 936,329 946,325" fill="black"/>
+  <text x="605" y="318" text-anchor="middle" fill="black" font-size="11">返回 PENDING 申请列表</text>
+
+  <!-- ③ 管理员端 → house-service 查看详情 -->
+  <line x1="936" y1="350" x2="274" y2="350" stroke="black" stroke-width="1.5"/>
+  <polygon points="274,346 274,354 264,350" fill="black"/>
+  <text x="605" y="343" text-anchor="middle" fill="black" font-size="11">GET /api/admin/house/bind-requests/{id}（查看详情）</text>
+
+  <line x1="274" y1="370" x2="936" y2="370" stroke="black" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <polygon points="936,366 936,374 946,370" fill="black"/>
+  <text x="605" y="363" text-anchor="middle" fill="black" font-size="11">返回申请详情</text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 3a: 审核通过分支                                        -->
+  <!-- ============================================================ -->
+
+  <!-- alt 框 -->
+  <rect x="10" y="385" width="1040" height="310" fill="none" stroke="black" stroke-width="1.2"/>
+  <rect x="10" y="385" width="60"  height="18"  fill="white" stroke="black" stroke-width="1.2"/>
+  <text x="40" y="398" text-anchor="middle" fill="black" font-size="11" font-weight="bold">alt</text>
+  <text x="80" y="398" fill="black" font-size="10">[审核通过]</text>
+
+  <!-- ④ 管理员端 → house-service approve -->
+  <line x1="936" y1="415" x2="274" y2="415" stroke="black" stroke-width="1.5"/>
+  <polygon points="274,411 274,419 264,415" fill="black"/>
+  <text x="605" y="408" text-anchor="middle" fill="black" font-size="11">PUT /api/admin/house/bind-requests/{id}/approve</text>
+
+  <!-- house-service 校验 PENDING -->
+  <rect x="280" y="422" width="200" height="20" fill="white" stroke="black" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="380" y="436" text-anchor="middle" fill="black" font-size="10">校验申请状态=PENDING、房屋未被绑定</text>
+
+  <!-- house-service → DB: 更新申请 APPROVED + 写绑定关系 -->
+  <line x1="274" y1="455" x2="511" y2="455" stroke="black" stroke-width="1.5"/>
+  <polygon points="511,451 511,459 521,455" fill="black"/>
+  <text x="392" y="448" text-anchor="middle" fill="black" font-size="11">更新申请为 APPROVED</text>
+
+  <line x1="274" y1="475" x2="511" y2="475" stroke="black" stroke-width="1.5"/>
+  <polygon points="511,471 511,479 521,475" fill="black"/>
+  <text x="392" y="468" text-anchor="middle" fill="black" font-size="11">写入 user_house 绑定关系</text>
+
+  <line x1="274" y1="495" x2="511" y2="495" stroke="black" stroke-width="1.5"/>
+  <polygon points="511,491 511,499 521,495" fill="black"/>
+  <text x="392" y="488" text-anchor="middle" fill="black" font-size="11">更新 sys_house.bind_status=1</text>
+
+  <line x1="274" y1="515" x2="511" y2="515" stroke="black" stroke-width="1.5"/>
+  <polygon points="511,511 511,519 521,515" fill="black"/>
+  <text x="392" y="508" text-anchor="middle" fill="black" font-size="11">批量 REJECT 同房屋其他 PENDING 申请</text>
+
+  <!-- house-service → user-service Feign 回写 communityId -->
+  <line x1="274" y1="545" x2="396" y2="545" stroke="black" stroke-width="1.5"/>
+  <polygon points="396,541 396,549 406,545" fill="black"/>
+  <text x="335" y="538" text-anchor="middle" fill="black" font-size="11">Feign: PUT /api/user/inner/{id}/community?communityId=...</text>
+
+  <line x1="396" y1="565" x2="274" y2="565" stroke="black" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <polygon points="274,561 274,569 264,565" fill="black"/>
+  <text x="335" y="558" text-anchor="middle" fill="black" font-size="11">回写 communityId（若为空才写）</text>
+
+  <!-- house-service → 管理员端 return -->
+  <line x1="274" y1="590" x2="936" y2="590" stroke="black" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <polygon points="936,586 936,594 946,590" fill="black"/>
+  <text x="605" y="583" text-anchor="middle" fill="black" font-size="11">返回审核通过</text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 3b: 驳回分支                                           -->
+  <!-- ============================================================ -->
+
+  <!-- alt 分隔线 -->
+  <line x1="10" y1="610" x2="1050" y2="610" stroke="black" stroke-width="0.8" stroke-dasharray="4,3"/>
+  <text x="80" y="623" fill="black" font-size="10">[驳回]</text>
+
+  <!-- ⑤ 管理员端 → house-service reject -->
+  <line x1="936" y1="640" x2="274" y2="640" stroke="black" stroke-width="1.5"/>
+  <polygon points="274,636 274,644 264,640" fill="black"/>
+  <text x="605" y="633" text-anchor="middle" fill="black" font-size="11">PUT /api/admin/house/bind-requests/{id}/reject（附驳回原因）</text>
+
+  <!-- house-service → DB: 置为 REJECTED -->
+  <line x1="274" y1="665" x2="511" y2="665" stroke="black" stroke-width="1.5"/>
+  <polygon points="511,661 511,669 521,665" fill="black"/>
+  <text x="392" y="658" text-anchor="middle" fill="black" font-size="11">申请置为 REJECTED，记录驳回原因</text>
+
+  <!-- house-service → 管理员端 return -->
+  <line x1="274" y1="690" x2="936" y2="690" stroke="black" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <polygon points="936,686 936,694 946,690" fill="black"/>
+  <text x="605" y="683" text-anchor="middle" fill="black" font-size="11">返回驳回成功</text>
+
+  <!-- ===== Step labels ===== -->
+  <text x="12" y="118"  fill="black" font-size="11" font-weight="bold">①</text>
+  <text x="12" y="303"  fill="black" font-size="11" font-weight="bold">②</text>
+  <text x="12" y="348"  fill="black" font-size="11" font-weight="bold">③</text>
+  <text x="12" y="413"  fill="black" font-size="11" font-weight="bold">④</text>
+  <text x="12" y="638"  fill="black" font-size="11" font-weight="bold">⑤</text>
+
+</svg>

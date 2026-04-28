@@ -8,5 +8,6 @@ public class AdminUpdateUserDTO {
     private String realName;
     private String phone;
     private String role;
+    private Long communityId;
 }
 

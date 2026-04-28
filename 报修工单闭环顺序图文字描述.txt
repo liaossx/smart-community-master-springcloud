@@ -1,0 +1,8 @@
+- 业主端 → Gateway → workorder-service：提交报修 POST /api/repair/submit ，校验参数并 Feign 查询房屋信息（house-service），写入 Repair（status=pending）。
+- workorder-service → RabbitMQ： convertAndSend(smart.repair.exchange, repair.submit, RepairMsgDTO) 发送“报修提交消息”。
+- RabbitMQ：根据绑定把消息路由到队列 smart.repair.submit.queue 。
+- system-service（消费者）← RabbitMQ：监听队列收到消息，Redis setIfAbsent(mq:repair:submit:{repairId}) 做幂等，Feign 调 property-service POST /api/notice/inner 给业主发“报修受理通知”。
+- 管理员端 → workorder-service：更新报修状态 POST /api/repair/admin/updateStatus?status=processing ，Repair 状态变 processing。
+- workorder-service：状态变 processing 时自动生成工单 createFromRepair(repairId) ，写入 WorkOrder（status=PENDING）。
+- 管理员端 → workorder-service：派单 POST /api/workorder/admin/assign ，工单变 ASSIGNED（记录维修员信息）。
+- 维修员端 → workorder-service：开始处理 POST /api/workorder/worker/start ，工单变 PROCESSING；完成 POST /api/workorder/worker/complete ，工单变 COMPLETED，并同步把 Repair 更新为 completed（闭环）。

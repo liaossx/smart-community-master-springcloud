@@ -7,7 +7,7 @@ import com.lsx.user.entity.UserRegisterRequest;
 public interface UserRegisterRequestService extends IService<UserRegisterRequest> {
     Page<UserRegisterRequest> pageRequests(Integer pageNum, Integer pageSize, String keyword, String status, String role);
 
-    boolean approve(Long id, String role, Long adminId);
+    boolean approve(Long id, String role, Long communityId, Long adminId);
 
     boolean reject(Long id, String reason, Long adminId);
 }

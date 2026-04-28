@@ -12,10 +12,12 @@ import com.lsx.user.client.HouseServiceClient;
 import com.lsx.user.dto.external.HouseDTO;
 import com.lsx.user.dto.external.VehicleDTO;
 import com.lsx.user.dto.*;
+import com.lsx.user.entity.Community;
 import com.lsx.user.vo.LoginResult;
 import com.lsx.user.vo.RegisterResult;
 import com.lsx.user.entity.User;
 import com.lsx.user.entity.UserRegisterRequest;
+import com.lsx.user.mapper.CommunityMapper;
 import com.lsx.user.mapper.UserMapper;
 import com.lsx.user.service.UserService;
 import com.lsx.user.service.UserRegisterRequestService;
@@ -47,6 +49,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Resource
     private UserRegisterRequestService userRegisterRequestService;
+
+    @Resource
+    private CommunityMapper communityMapper;
 
     @Override
     public LoginResult login(LoginDto loginDto) {
@@ -375,6 +380,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (StringUtils.hasText(dto.getRole())) {
             String role = dto.getRole();
             user.setRole("user".equalsIgnoreCase(role) ? "owner" : role);
+        }
+        if (dto.getCommunityId() != null) {
+            Community community = communityMapper.selectById(dto.getCommunityId());
+            if (community == null) {
+                throw new RuntimeException("所选社区不存在");
+            }
+            user.setCommunityId(dto.getCommunityId());
         }
         
         user.setUpdateTime(LocalDateTime.now());

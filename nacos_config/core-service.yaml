@@ -23,6 +23,11 @@ spring:
         max-idle: 8
         min-idle: 0
         max-wait: 3000ms
+  rabbitmq:
+    host: ${RABBITMQ_HOST:192.168.10.101}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
   cloud:
     sentinel:
       transport:

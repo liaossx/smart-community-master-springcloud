@@ -33,21 +33,17 @@ services:
     ports:
       - "8848:8848"
       - "9848:9848"
+      - "9849:9849"
     volumes:
       - ./nacos/data:/home/nacos/data
       - ./nacos/logs:/home/nacos/logs
-      - ./nacos/conf/application.properties:/home/nacos/conf/application.properties
-      - ./nacos/conf/nacos-logback.xml:/home/nacos/conf/nacos-logback.xml
     environment:
-      MODE: standalone
-      AUTH_ENABLED: "false"
-      PREFER_HOST_MODE: "ip"
-      SPRING_DATASOURCE_PLATFORM: mysql
-      MYSQL_SERVICE_HOST: mysql
-      MYSQL_SERVICE_DB_NAME: nacos_config
-      MYSQL_SERVICE_PORT: "3306"
-      MYSQL_SERVICE_USER: root
-      MYSQL_SERVICE_PASSWORD: "1234"
+      - MODE=standalone
+      - SPRING_DATASOURCE_PLATFORM=mysql
+      - db.num=1
+      - db.url.0=jdbc:mysql://mysql:3306/nacos_config?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      - db.user.0=root
+      - db.password.0=1234
     depends_on:
       - mysql
 

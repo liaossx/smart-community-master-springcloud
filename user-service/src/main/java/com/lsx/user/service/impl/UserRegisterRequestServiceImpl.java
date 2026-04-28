@@ -3,8 +3,10 @@ package com.lsx.user.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lsx.user.entity.Community;
 import com.lsx.user.entity.User;
 import com.lsx.user.entity.UserRegisterRequest;
+import com.lsx.user.mapper.CommunityMapper;
 import com.lsx.user.mapper.UserMapper;
 import com.lsx.user.mapper.UserRegisterRequestMapper;
 import com.lsx.user.service.UserRegisterRequestService;
@@ -21,6 +23,9 @@ public class UserRegisterRequestServiceImpl extends ServiceImpl<UserRegisterRequ
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private CommunityMapper communityMapper;
 
     @Override
     public Page<UserRegisterRequest> pageRequests(Integer pageNum, Integer pageSize, String keyword, String status, String role) {
@@ -49,22 +54,28 @@ public class UserRegisterRequestServiceImpl extends ServiceImpl<UserRegisterRequ
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean approve(Long id, String role, Long adminId) {
+    public boolean approve(Long id, String role, Long communityId, Long adminId) {
         UserRegisterRequest req = this.getById(id);
         if (req == null) {
             throw new RuntimeException("注册申请不存在");
         }
         if (!"PENDING".equalsIgnoreCase(req.getStatus())) {
-            throw new RuntimeException("注册申请状态不允许审核");
+            throw new RuntimeException("注册申请不存在或状态不是待审核");
         }
 
         String finalRole = StringUtils.hasText(role) ? role : req.getRole();
         if ("superadmin".equalsIgnoreCase(finalRole)) {
             finalRole = "super_admin";
         }
-        if (!StringUtils.hasText(finalRole) || (!"owner".equals(finalRole) && !"admin".equals(finalRole) && !"super_admin".equals(finalRole) && !"worker".equals(finalRole))) {
-            throw new RuntimeException("角色必须是'owner'、'admin'、'super_admin' 或 'worker'");
+        if (!StringUtils.hasText(finalRole)
+                || (!"owner".equals(finalRole)
+                && !"admin".equals(finalRole)
+                && !"super_admin".equals(finalRole)
+                && !"worker".equals(finalRole))) {
+            throw new RuntimeException("角色必须是 owner、admin、super_admin 或 worker");
         }
+
+        Long finalCommunityId = resolveApprovedCommunityId(finalRole, communityId, req.getCommunityId());
 
         User existing = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, req.getUsername()));
         if (existing != null) {
@@ -84,7 +95,7 @@ public class UserRegisterRequestServiceImpl extends ServiceImpl<UserRegisterRequ
         user.setRealName(req.getRealName());
         user.setPhone(req.getPhone());
         user.setRole(finalRole);
-        user.setCommunityId(req.getCommunityId());
+        user.setCommunityId(finalCommunityId);
         user.setStatus(1);
         user.setBalance(java.math.BigDecimal.ZERO);
         user.setCreateTime(LocalDateTime.now());
@@ -95,6 +106,7 @@ public class UserRegisterRequestServiceImpl extends ServiceImpl<UserRegisterRequ
         }
 
         req.setRole(finalRole);
+        req.setCommunityId(finalCommunityId);
         req.setStatus("APPROVED");
         req.setApproveTime(LocalDateTime.now());
         req.setApproveBy(adminId);
@@ -110,12 +122,37 @@ public class UserRegisterRequestServiceImpl extends ServiceImpl<UserRegisterRequ
             throw new RuntimeException("注册申请不存在");
         }
         if (!"PENDING".equalsIgnoreCase(req.getStatus())) {
-            throw new RuntimeException("注册申请状态不允许审核");
+            throw new RuntimeException("注册申请不存在或状态不是待审核");
         }
         req.setStatus("REJECTED");
         req.setRejectReason(reason);
         req.setApproveTime(LocalDateTime.now());
         req.setApproveBy(adminId);
         return this.updateById(req);
+    }
+
+    private Long resolveApprovedCommunityId(String role, Long requestCommunityId, Long originalCommunityId) {
+        if ("admin".equalsIgnoreCase(role)) {
+            if (requestCommunityId == null) {
+                throw new RuntimeException("管理员账号必须选择负责社区");
+            }
+            validateCommunityExists(requestCommunityId);
+            return requestCommunityId;
+        }
+        if ("worker".equalsIgnoreCase(role)) {
+            if (requestCommunityId == null) {
+                throw new RuntimeException("工作人员账号必须选择所属社区");
+            }
+            validateCommunityExists(requestCommunityId);
+            return requestCommunityId;
+        }
+        return requestCommunityId != null ? requestCommunityId : originalCommunityId;
+    }
+
+    private void validateCommunityExists(Long communityId) {
+        Community community = communityMapper.selectById(communityId);
+        if (community == null) {
+            throw new RuntimeException("所选社区不存在");
+        }
     }
 }

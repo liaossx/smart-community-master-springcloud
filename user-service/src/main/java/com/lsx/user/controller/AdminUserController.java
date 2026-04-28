@@ -176,7 +176,8 @@ public class AdminUserController {
                 return Result.fail("未登录");
             }
             String role = body != null ? body.getRole() : null;
-            return Result.success(userRegisterRequestService.approve(id, role, adminId));
+            Long communityId = body != null ? body.getCommunityId() : null;
+            return Result.success(userRegisterRequestService.approve(id, role, communityId, adminId));
         } catch (RuntimeException e) {
             return Result.fail(e.getMessage());
         }
